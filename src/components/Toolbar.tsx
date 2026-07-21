@@ -22,7 +22,7 @@ export function Toolbar({ focusedId, onExport, exporting }: ToolbarProps) {
 
   return (
     <div className="toolbar">
-      <div className="toolbar-group">
+      <div className="element-switch" role="group" aria-label="Element type">
         {ELEMENT_ORDER.map((type, i) => (
           <button
             key={type}
@@ -32,15 +32,14 @@ export function Toolbar({ focusedId, onExport, exporting }: ToolbarProps) {
             disabled={!focusedBlock}
             title={`${ELEMENT_LABELS[type]} (Ctrl/Cmd+${SHORTCUT_KEYS[i]})`}
           >
+            <span className="key-badge">{SHORTCUT_KEYS[i]}</span>
             {ELEMENT_LABELS[type]}
           </button>
         ))}
       </div>
-      <div className="toolbar-group">
-        <button type="button" className="export-btn" onClick={onExport} disabled={exporting}>
-          {exporting ? 'Exporting…' : 'Export PDF'}
-        </button>
-      </div>
+      <button type="button" className="export-btn" onClick={onExport} disabled={exporting}>
+        {exporting ? 'Exporting…' : 'Export PDF'}
+      </button>
     </div>
   );
 }

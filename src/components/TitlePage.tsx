@@ -5,25 +5,34 @@ export function TitlePage() {
 
   return (
     <div className="title-page">
-      <input
-        className="title-page-title"
-        value={doc.titlePage.title}
-        placeholder="Screenplay Title"
-        onChange={(e) => setTitlePageField('title', e.target.value)}
-      />
-      <input
-        className="title-page-author"
-        value={doc.titlePage.author}
-        placeholder="Written by ..."
-        onChange={(e) => setTitlePageField('author', e.target.value)}
-      />
-      <textarea
-        className="title-page-contact"
-        value={doc.titlePage.contact}
-        placeholder="Contact info (email, phone, agency)"
-        onChange={(e) => setTitlePageField('contact', e.target.value)}
-        rows={3}
-      />
+      <label className="field">
+        <span className="field-label">Title</span>
+        <input
+          className="title-page-title"
+          value={doc.titlePage.title}
+          placeholder="Screenplay Title"
+          onChange={(e) => setTitlePageField('title', e.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Written by</span>
+        <input
+          className="title-page-author"
+          value={doc.titlePage.author}
+          placeholder="Your name"
+          onChange={(e) => setTitlePageField('author', e.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Contact</span>
+        <textarea
+          className="title-page-contact"
+          value={doc.titlePage.contact}
+          placeholder="Email, phone, agency..."
+          onChange={(e) => setTitlePageField('contact', e.target.value)}
+          rows={3}
+        />
+      </label>
     </div>
   );
 }

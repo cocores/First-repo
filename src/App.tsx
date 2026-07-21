@@ -25,16 +25,27 @@ function AppShell() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Scriptwriter</h1>
-        <button type="button" className="link-btn" onClick={() => setShowTitlePage((v) => !v)}>
-          {showTitlePage ? 'Hide title page' : 'Edit title page'}
-        </button>
-      </header>
-      <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
+      <div className="deskbar">
+        <div className="deskbar-row">
+          <div className="brand">
+            <span className="brand-mark">Scriptwriter</span>
+            <span className="brand-doc">{doc.titlePage.title || 'Untitled Screenplay'}</span>
+          </div>
+          <button type="button" className="link-btn" onClick={() => setShowTitlePage((v) => !v)}>
+            {showTitlePage ? 'Hide title page' : 'Edit title page'}
+          </button>
+        </div>
+        <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
+      </div>
       {showTitlePage && <TitlePage />}
-      <main className="page">
-        <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} />
+      <main className="stage">
+        <div className="page">
+          <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} />
+        </div>
+        <p className="hint-bar">
+          <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
+          <kbd>⌘/Ctrl 1–7</kbd> jump to element
+        </p>
       </main>
     </div>
   );

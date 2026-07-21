@@ -1,19 +1,61 @@
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/courier-prime/latin-400.css';
+@import '@fontsource/courier-prime/latin-700.css';
+
+/*
+  Palette: a writer's desk under one warm light. The "desk" (chrome) shifts
+  with the OS theme; the "paper" (the page itself) stays lit the same in
+  both, because it represents an literal, printable sheet, not a UI surface.
+  The single accent, --ribbon, is the red half of a typewriter's two-colour
+  ribbon — used only for the export action and active/focus states.
+*/
 :root {
+  --ink: #1e1b18;
+  --muted: #7a7266;
+  --desk: #e7e2d8;
+  --desk-raised: #f4f1e9;
+  --border: #d8d2c4;
+  --ribbon: #a23f2e;
+  --ribbon-ink: #fff8f0;
+
+  --paper: #fbf9f4;
+  --paper-text: #22201d;
+  --paper-rule: #c9c2b4;
+
+  --font-mono-ui: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-script: 'Courier Prime', 'Courier New', Courier, monospace;
+
   color-scheme: light dark;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ede7dc;
+    --muted: #9c948a;
+    --desk: #171512;
+    --desk-raised: #201d19;
+    --border: #332e27;
+    --ribbon: #d6674f;
+    --ribbon-ink: #1b1210;
+  }
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  background: #e9e9ec;
+  background: var(--desk);
+  color: var(--ink);
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #1b1b1e;
-  }
+body {
+  font-family: var(--font-sans);
 }
