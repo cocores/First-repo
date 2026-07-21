@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ScriptBlock } from '../types';
 import { ELEMENT_LABELS } from '../types';
 import { ELEMENT_LAYOUT, MARGIN_LEFT_IN } from '../format/spec';
+import type { LintIssue } from '../format/lint';
 
 export interface FocusRequest {
   id: string;
@@ -13,6 +14,7 @@ interface BlockProps {
   isFocused: boolean;
   blankLinesBefore: number;
   suggestions: string[];
+  issues: LintIssue[];
   focusRequest: FocusRequest | null;
   onFocusHandled: () => void;
   onFocus: (id: string) => void;
@@ -30,6 +32,7 @@ export function Block({
   isFocused,
   blankLinesBefore,
   suggestions,
+  issues,
   focusRequest,
   onFocusHandled,
   onFocus,
@@ -142,6 +145,13 @@ export function Block({
   const listId = `sugg-list-${block.id}`;
   const optionId = (i: number) => `sugg-opt-${block.id}-${i}`;
 
+  const worstSeverity = issues.some((i) => i.severity === 'warning')
+    ? 'warning'
+    : issues.length > 0
+      ? 'info'
+      : null;
+  const issueTitle = issues.length > 0 ? issues.map((i) => i.message).join('\n') : undefined;
+
   return (
     <div
       className={`block-row block-${block.type}`}
@@ -154,10 +164,11 @@ export function Block({
       <div className="block-input-wrap" style={{ width: `${widthIn}in` }}>
         <textarea
           ref={ref}
-          className="block-textarea"
+          className={`block-textarea${worstSeverity ? ` issue-${worstSeverity}` : ''}`}
           rows={1}
           value={block.text}
           placeholder={isFocused ? ELEMENT_LABELS[block.type] : ''}
+          title={issueTitle}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={isOpen}

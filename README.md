@@ -70,6 +70,27 @@ If you already had a script saved before projects existed, it's migrated
 automatically into a project called "My Project" the first time you load
 the app — nothing is lost.
 
+## Format checking
+
+Beyond the mechanical formatting (margins, indents, caps) the editor
+already enforces as you type, **Format Issues (N)** catches the content
+conventions that can't be enforced automatically:
+
+- A scene heading missing its INT./EXT. camera position or its time of day
+- A transition not ending in a colon (e.g. "CUT TO:")
+- A parenthetical long enough to read like a full sentence
+- Action or dialogue typed entirely in capital letters
+- A character cue with no dialogue underneath it
+- An action paragraph long enough that convention suggests splitting it
+
+Any line with an issue gets a wavy underline right on the page (amber for
+things worth fixing, a cooler tone for lighter suggestions) so you see it
+as you write, not just in a separate list. Opening the panel shows every
+issue with a plain-language suggestion; where a fix is unambiguous (adding
+a missing colon, an INT./EXT., a time of day, or converting stray caps to
+sentence case) an **Apply fix** button does it in one click. Click any row
+to jump straight to that line.
+
 ## Navigating and revising
 
 - **Scenes (N)** opens a navigator listing every scene heading in order;

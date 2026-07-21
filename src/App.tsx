@@ -4,10 +4,12 @@ import { ScriptEditor, type JumpRequest } from './components/ScriptEditor';
 import { Toolbar } from './components/Toolbar';
 import { TitlePage } from './components/TitlePage';
 import { SceneNavigator } from './components/SceneNavigator';
+import { FormatIssuesPanel } from './components/FormatIssuesPanel';
 import { Sidebar } from './components/Sidebar';
 import { TabBar } from './components/TabBar';
 import { exportScriptToPdf } from './pdf/exportPdf';
 import { computeStats } from './format/stats';
+import { lintDocument, groupIssuesByBlock } from './format/lint';
 import { useScriptStore } from './store';
 import type { ScriptBlock } from './types';
 import './App.css';
@@ -23,17 +25,21 @@ function currentSceneId(blocks: ScriptBlock[], focusedId: string | null): string
 }
 
 function AppShell() {
-  const { doc, undo, redo, activeProjectId, activeProjectName, activeTabId } = useScriptStore();
+  const { doc, undo, redo, setText, activeProjectId, activeProjectName, activeTabId } = useScriptStore();
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
   const [showNavigator, setShowNavigator] = useState(false);
+  const [showFormatPanel, setShowFormatPanel] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [jumpTo, setJumpTo] = useState<JumpRequest | null>(null);
 
   const stats = useMemo(() => computeStats(doc.blocks), [doc.blocks]);
   const activeSceneId = useMemo(() => currentSceneId(doc.blocks, focusedId), [doc.blocks, focusedId]);
+  const issues = useMemo(() => lintDocument(doc.blocks), [doc.blocks]);
+  const issuesByBlock = useMemo(() => groupIssuesByBlock(issues), [issues]);
+  const blocksById = useMemo(() => new Map(doc.blocks.map((b) => [b.id, b])), [doc.blocks]);
 
   // The sticky deskbar establishes its own stacking context (position:
   // sticky + z-index), so no z-index a dropdown's click-outside-to-close
@@ -109,7 +115,7 @@ function AppShell() {
     }
   }
 
-  function handleJumpToScene(id: string) {
+  function handleJumpToBlock(id: string) {
     setJumpTo({ id, nonce: Date.now() });
   }
 
@@ -140,6 +146,17 @@ function AppShell() {
                 {stats.pageCount} {stats.pageCount === 1 ? 'page' : 'pages'} · ~{stats.estimatedMinutes} min ·{' '}
                 {stats.wordCount} words
               </p>
+              <button
+                type="button"
+                className="link-btn"
+                aria-expanded={showFormatPanel}
+                onClick={() => setShowFormatPanel((v) => !v)}
+              >
+                Format Issues ({issues.length})
+                <span className="link-btn-caret" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
               <button
                 type="button"
                 className="link-btn"
@@ -182,7 +199,7 @@ function AppShell() {
           blocks={doc.blocks}
           currentSceneId={activeSceneId}
           onJump={(id) => {
-            handleJumpToScene(id);
+            handleJumpToBlock(id);
             setShowNavigator(false);
           }}
         />
@@ -194,9 +211,33 @@ function AppShell() {
             onClick={() => setShowNavigator(false)}
           />
         )}
+        <FormatIssuesPanel
+          isOpen={showFormatPanel}
+          issues={issues}
+          blocksById={blocksById}
+          onJump={(id) => {
+            handleJumpToBlock(id);
+            setShowFormatPanel(false);
+          }}
+          onApplyFix={(id, fixedText) => setText(id, fixedText)}
+        />
+        {showFormatPanel && (
+          <button
+            type="button"
+            className="format-panel-scrim"
+            aria-label="Close format suggestions"
+            onClick={() => setShowFormatPanel(false)}
+          />
+        )}
         <main className="stage">
           <div className="page">
-            <ScriptEditor key={activeTabId} focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
+            <ScriptEditor
+              key={activeTabId}
+              focusedId={focusedId}
+              onFocusedChange={setFocusedId}
+              jumpTo={jumpTo}
+              issuesByBlock={issuesByBlock}
+            />
           </div>
           <p className="hint-bar">
             <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;

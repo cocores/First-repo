@@ -3,10 +3,12 @@ import { useScriptStore } from '../store';
 import { cycleType, nextTypeOnEnter, transformText } from '../format/elements';
 import { blankLinesBefore } from '../format/spec';
 import { getSuggestions } from '../format/suggestions';
+import type { LintIssue } from '../format/lint';
 import { Block, type FocusRequest } from './Block';
 import type { ElementType } from '../types';
 
 const NO_SUGGESTIONS: string[] = [];
+const NO_ISSUES: LintIssue[] = [];
 
 export interface JumpRequest {
   id: string;
@@ -17,9 +19,10 @@ interface ScriptEditorProps {
   focusedId: string | null;
   onFocusedChange: (id: string) => void;
   jumpTo?: JumpRequest | null;
+  issuesByBlock: Map<string, LintIssue[]>;
 }
 
-export function ScriptEditor({ focusedId, onFocusedChange, jumpTo }: ScriptEditorProps) {
+export function ScriptEditor({ focusedId, onFocusedChange, jumpTo, issuesByBlock }: ScriptEditorProps) {
   const { doc, setText, setType, splitBlock, mergeWithPrevious } = useScriptStore();
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
 
@@ -110,6 +113,7 @@ export function ScriptEditor({ focusedId, onFocusedChange, jumpTo }: ScriptEdito
           suggestions={
             focusedId === block.id ? getSuggestions(doc.blocks, block.id, block.type, block.text) : NO_SUGGESTIONS
           }
+          issues={issuesByBlock.get(block.id) ?? NO_ISSUES}
           focusRequest={focusRequest}
           onFocusHandled={() => setFocusRequest(null)}
           onFocus={onFocusedChange}

@@ -664,6 +664,168 @@
   cursor: default;
 }
 
+/* ---------- Format suggestions panel (docked right) ---------- */
+
+.format-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 320px;
+  max-width: 85vw;
+  background: var(--desk-raised);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px -16px rgba(0, 0, 0, 0.5);
+  padding: 1.25rem 0.5rem;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.format-panel.open {
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .format-panel {
+    transition: none;
+  }
+}
+
+.format-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono-ui);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0.75rem 0.75rem;
+}
+
+.format-panel-count {
+  background: var(--warn);
+  color: var(--desk-raised);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.45rem;
+}
+
+.format-panel-empty {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 0 0.75rem;
+}
+
+.format-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.format-issue-list li {
+  border-radius: 4px;
+  border-left: 3px solid var(--info);
+  background: var(--desk);
+}
+
+.format-issue-list li.severity-warning {
+  border-left-color: var(--warn);
+}
+
+.format-issue-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.6rem 0.25rem;
+  cursor: pointer;
+}
+
+.format-issue-badge {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--info);
+  line-height: 1.3;
+}
+
+.format-issue-list li.severity-warning .format-issue-badge {
+  color: var(--warn);
+}
+
+.format-issue-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.format-issue-excerpt {
+  font-family: var(--font-script);
+  font-size: 0.8rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.format-issue-message {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.76rem;
+  color: var(--ink);
+}
+
+.format-issue-suggestion {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.format-issue-fix {
+  margin: 0 0.6rem 0.5rem 2rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem 0.55rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.format-issue-fix:hover {
+  border-color: var(--ribbon);
+  color: var(--ribbon);
+}
+
+.format-panel-scrim {
+  position: fixed;
+  /* See the comment on .scene-nav-scrim — starts below the deskbar so its
+     own buttons stay clickable while this panel is open. */
+  top: var(--deskbar-height, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.25);
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
 /* ---------- Title page panel ---------- */
 
 .title-page-collapse {
@@ -822,6 +984,22 @@
   color: var(--paper-rule);
   font-weight: 400;
   text-transform: none;
+}
+
+.block-textarea.issue-warning {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--warn);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.block-textarea.issue-info {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--info);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .suggestion-dropdown {

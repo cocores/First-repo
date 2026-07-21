@@ -26,6 +26,11 @@
   --paper-text: #22201d;
   --paper-rule: #c9c2b4;
 
+  /* Semantic colors for format-lint severity — deliberately distinct from
+     --ribbon, which means "active/selected", not "needs attention". */
+  --warn: #9c6b0a;
+  --info: #5b6b7a;
+
   --font-mono-ui: 'IBM Plex Mono', ui-monospace, monospace;
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-script: 'Courier Prime', 'Courier New', Courier, monospace;
@@ -42,6 +47,8 @@
     --border: #332e27;
     --ribbon: #d6674f;
     --ribbon-ink: #1b1210;
+    --warn: #e0a839;
+    --info: #8fa6b8;
   }
 }
 
