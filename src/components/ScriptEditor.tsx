@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useScriptStore } from '../store';
 import { cycleType, nextTypeOnEnter, transformText } from '../format/elements';
 import { blankLinesBefore } from '../format/spec';
+import { computeScreenPages } from '../format/pageLayout';
 import { getSuggestions } from '../format/suggestions';
 import type { LintIssue } from '../format/lint';
 import { Block, type FocusRequest } from './Block';
@@ -102,29 +103,47 @@ export function ScriptEditor({ focusedId, onFocusedChange, jumpTo, issuesByBlock
     [doc.blocks],
   );
 
+  const pages = useMemo(() => computeScreenPages(doc.blocks), [doc.blocks]);
+
+  let globalIndex = 0;
+
   return (
-    <div className="script-editor" onKeyDownCapture={handleGlobalShortcuts(doc.blocks, focusedId, setType, setText)}>
-      {doc.blocks.map((block, i) => (
-        <Block
-          key={block.id}
-          block={block}
-          isFocused={focusedId === block.id}
-          blankLinesBefore={i === 0 ? 0 : blankLinesBefore(doc.blocks[i - 1].type, block.type)}
-          suggestions={
-            focusedId === block.id ? getSuggestions(doc.blocks, block.id, block.type, block.text) : NO_SUGGESTIONS
-          }
-          issues={issuesByBlock.get(block.id) ?? NO_ISSUES}
-          focusRequest={focusRequest}
-          onFocusHandled={() => setFocusRequest(null)}
-          onFocus={onFocusedChange}
-          onChange={handleChange}
-          onCycleType={handleCycleType}
-          onEnter={handleEnter}
-          onAcceptSuggestion={handleAcceptSuggestion}
-          onBackspaceAtStart={handleBackspaceAtStart}
-          onArrowUpAtStart={handleArrowUp}
-          onArrowDownAtEnd={handleArrowDown}
-        />
+    <div className="pages" onKeyDownCapture={handleGlobalShortcuts(doc.blocks, focusedId, setType, setText)}>
+      {pages.map((pageBlocks, pageIndex) => (
+        <div className="page" key={pageIndex}>
+          {pageIndex > 0 && <div className="page-number">{pageIndex + 1}.</div>}
+          <div className="script-editor">
+            {pageBlocks.map((block, indexInPage) => {
+              const isFirstOnPage = indexInPage === 0;
+              const blankLines = isFirstOnPage ? 0 : blankLinesBefore(doc.blocks[globalIndex - 1].type, block.type);
+              globalIndex += 1;
+              return (
+                <Block
+                  key={block.id}
+                  block={block}
+                  isFocused={focusedId === block.id}
+                  blankLinesBefore={blankLines}
+                  suggestions={
+                    focusedId === block.id
+                      ? getSuggestions(doc.blocks, block.id, block.type, block.text)
+                      : NO_SUGGESTIONS
+                  }
+                  issues={issuesByBlock.get(block.id) ?? NO_ISSUES}
+                  focusRequest={focusRequest}
+                  onFocusHandled={() => setFocusRequest(null)}
+                  onFocus={onFocusedChange}
+                  onChange={handleChange}
+                  onCycleType={handleCycleType}
+                  onEnter={handleEnter}
+                  onAcceptSuggestion={handleAcceptSuggestion}
+                  onBackspaceAtStart={handleBackspaceAtStart}
+                  onArrowUpAtStart={handleArrowUp}
+                  onArrowDownAtEnd={handleArrowDown}
+                />
+              );
+            })}
+          </div>
+        </div>
       ))}
     </div>
   );

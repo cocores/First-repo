@@ -16,7 +16,13 @@ industry-standard screenplay PDF.
   type, matching the toolbar button order.
 - Scene headings, character cues, transitions, and shots auto-uppercase as
   you type.
-- The page on screen mirrors the exported PDF's margins and indents.
+- The editor is paginated, not one continuous scroll: it breaks into real
+  8.5x11in pages as you type, using the exact same line budget, orphan
+  protection, and page numbering as the PDF export, so what you see on
+  screen is where the page actually breaks in the exported document (with
+  one intentional exception — a single monologue too long to fit on one
+  page stays whole on screen rather than visually splitting mid-textarea;
+  the export still gives it proper "(MORE)"/"(CONT'D)" treatment).
 - Scene headings and character names you've already used appear in a
   type-ahead dropdown as you type a matching prefix (most recently used
   first), like Final Draft/WriterDuet's auto-complete. **↑/↓** to

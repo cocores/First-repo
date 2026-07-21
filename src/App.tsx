@@ -230,15 +230,13 @@ function AppShell() {
           />
         )}
         <main className="stage">
-          <div className="page">
-            <ScriptEditor
-              key={activeTabId}
-              focusedId={focusedId}
-              onFocusedChange={setFocusedId}
-              jumpTo={jumpTo}
-              issuesByBlock={issuesByBlock}
-            />
-          </div>
+          <ScriptEditor
+            key={activeTabId}
+            focusedId={focusedId}
+            onFocusedChange={setFocusedId}
+            jumpTo={jumpTo}
+            issuesByBlock={issuesByBlock}
+          />
           <p className="hint-bar">
             <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
             <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>⌘/Ctrl Z</kbd> undo

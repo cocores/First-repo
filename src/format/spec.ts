@@ -40,6 +40,13 @@ export function maxCharsForElement(type: ElementType): number {
   return Math.max(1, Math.floor((layout.rightIn - layout.leftIn) * CHARS_PER_INCH));
 }
 
+// Element types that must never be the last thing on a page, separated from
+// the material they introduce (a lone slugline or character cue at the
+// bottom of a page reads as broken formatting to any script reader). Shared
+// between the PDF exporter and the on-screen paginated view so both agree
+// on where pages break.
+export const ATTACH_TO_NEXT_TYPES = new Set<ElementType>(['scene_heading', 'character', 'parenthetical', 'transition']);
+
 const NO_BLANK_LINE_TRANSITIONS = new Set<string>([
   'character->parenthetical',
   'character->dialogue',

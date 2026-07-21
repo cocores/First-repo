@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import type { ElementType, ScriptBlock, ScriptDocument } from '../types';
 import {
+  ATTACH_TO_NEXT_TYPES,
   CONTENT_RIGHT_EDGE_IN,
   ELEMENT_LAYOUT,
   LINES_PER_INCH,
@@ -17,11 +18,6 @@ const FONT_SIZE = 12;
 const LINE_HEIGHT_IN = 1 / LINES_PER_INCH;
 const BASELINE_OFFSET_IN = 0.11;
 
-// Element types that must never be the last thing on a page, separated from
-// the material they introduce (a lone slugline or character cue at the
-// bottom of a page reads as broken formatting to any script reader).
-const ATTACH_TO_NEXT = new Set<ElementType>(['scene_heading', 'character', 'parenthetical', 'transition']);
-
 interface RenderLine {
   text: string;
   leftIn: number;
@@ -33,7 +29,7 @@ interface RenderedBlock {
   lines: RenderLine[];
 }
 
-function wrapText(text: string, maxChars: number): string[] {
+export function wrapText(text: string, maxChars: number): string[] {
   const paragraphs = text.split('\n');
   const out: string[] = [];
   for (const paragraph of paragraphs) {
@@ -95,7 +91,7 @@ export function paginate(blocks: ScriptBlock[]): Page[] {
   const groups: ScriptBlock[][] = [];
   for (const block of nonEmpty) {
     const lastGroup = groups[groups.length - 1];
-    if (lastGroup && ATTACH_TO_NEXT.has(lastGroup[lastGroup.length - 1].type)) {
+    if (lastGroup && ATTACH_TO_NEXT_TYPES.has(lastGroup[lastGroup.length - 1].type)) {
       lastGroup.push(block);
     } else {
       groups.push([block]);
@@ -254,7 +250,7 @@ export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pd
   for (let p = 0; p < pages.length; p++) {
     pdf.addPage();
     if (p > 0) {
-      pdf.text(`${p + 2}.`, CONTENT_RIGHT_EDGE_IN, 0.5, { align: 'right' });
+      pdf.text(`${p + 1}.`, CONTENT_RIGHT_EDGE_IN, 0.5, { align: 'right' });
     }
     for (const line of pages[p].lines) {
       if (!line.text) continue;
