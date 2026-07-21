@@ -106,8 +106,8 @@ function AppShell() {
       const filename = `${(doc.titlePage.title || 'screenplay').replace(/[^a-z0-9]+/gi, '_')}.pdf`;
       const mode = exportScriptToPdf(doc, filename);
       setExportNotice(
-        mode === 'opened-in-tab'
-          ? "Opened the PDF in a new tab — if nothing appeared, this preview may be blocking downloads. Open Scriptwriter in its own browser tab to export directly."
+        mode === 'may-be-blocked'
+          ? 'If no download started, this embedded preview is blocking it — open Scriptwriter in its own browser tab (not inside this preview) and export from there to save the PDF to your device.'
           : null,
       );
     } finally {

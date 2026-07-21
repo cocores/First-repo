@@ -21,8 +21,10 @@ industry-standard screenplay PDF.
   protection, and page numbering as the PDF export, so what you see on
   screen is where the page actually breaks in the exported document (with
   one intentional exception — a single monologue too long to fit on one
-  page stays whole on screen rather than visually splitting mid-textarea;
-  the export still gives it proper "(MORE)"/"(CONT'D)" treatment).
+  page stays whole on screen rather than visually splitting mid-textarea,
+  and the page grows taller to fit it rather than clipping or hiding the
+  overflow; the export still gives it proper "(MORE)"/"(CONT'D)"
+  treatment).
 - Scene headings and character names you've already used appear in a
   type-ahead dropdown as you type a matching prefix (most recently used
   first), like Final Draft/WriterDuet's auto-complete. **↑/↓** to
@@ -45,6 +47,14 @@ and every other screenwriting program handle it. A simple title page
 panel.
 
 The document autosaves to the browser's local storage as you type.
+
+Clicking "Export PDF" saves the file straight to your device. The one
+exception is viewing the app inside an embedded, sandboxed preview (for
+example a chat's inline preview panel rather than a full browser tab) —
+browser sandboxing there can silently block the download outright, with
+no reliable way for the app to detect or work around it. If nothing
+downloads, a message points you to open the app in its own browser tab,
+where the download always works normally.
 
 ## Projects, folders, and drafts
 

@@ -201,11 +201,13 @@ export function paginate(blocks: ScriptBlock[]): Page[] {
 
 // Sandboxed iframes (e.g. an embedded preview) can render the app fine but
 // silently block the anchor-click download jsPDF's save() relies on, unless
-// the embedder opts in with the `allow-downloads` sandbox flag. Opening the
-// PDF in a new tab instead only needs popup permission, which such embeds
-// more commonly allow — but since some sandboxes restrict both, the
-// caller uses the returned mode to warn the writer rather than assume it
-// worked.
+// the embedder opts in with the `allow-downloads` sandbox flag. Opening a
+// blob: URL in a new tab isn't a reliable fallback either: without
+// `allow-popups-to-escape-sandbox`, the popup inherits the opener's sandbox
+// restrictions, so the tab opens but the PDF fails to load — the popup call
+// still returns a truthy handle, so success can't be detected from here.
+// The only sandbox-proof path is to tell the writer to open the app in its
+// own tab, where it isn't sandboxed at all.
 function isEmbeddedInIframe(): boolean {
   try {
     return window.self !== window.top;
@@ -214,7 +216,7 @@ function isEmbeddedInIframe(): boolean {
   }
 }
 
-export type ExportMode = 'downloaded' | 'opened-in-tab';
+export type ExportMode = 'downloaded' | 'may-be-blocked';
 
 export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pdf'): ExportMode {
   const pdf = new jsPDF({ unit: 'in', format: 'letter' });
@@ -259,12 +261,6 @@ export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pd
     }
   }
 
-  if (isEmbeddedInIframe()) {
-    const opened = window.open(pdf.output('bloburl').toString(), '_blank');
-    if (opened) return 'opened-in-tab';
-    pdf.save(filename);
-    return 'downloaded';
-  }
   pdf.save(filename);
-  return 'downloaded';
+  return isEmbeddedInIframe() ? 'may-be-blocked' : 'downloaded';
 }
