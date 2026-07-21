@@ -31,13 +31,25 @@ function AppShell() {
             <span className="brand-mark">Scriptwriter</span>
             <span className="brand-doc">{doc.titlePage.title || 'Untitled Screenplay'}</span>
           </div>
-          <button type="button" className="link-btn" onClick={() => setShowTitlePage((v) => !v)}>
+          <button
+            type="button"
+            className="link-btn"
+            aria-expanded={showTitlePage}
+            onClick={() => setShowTitlePage((v) => !v)}
+          >
             {showTitlePage ? 'Hide title page' : 'Edit title page'}
+            <span className="link-btn-caret" aria-hidden="true">
+              ▾
+            </span>
           </button>
         </div>
         <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
       </div>
-      {showTitlePage && <TitlePage />}
+      <div className={`title-page-collapse${showTitlePage ? ' open' : ''}`} inert={!showTitlePage}>
+        <div className="title-page-collapse-inner">
+          <TitlePage />
+        </div>
+      </div>
       <main className="stage">
         <div className="page">
           <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} />
