@@ -95,6 +95,15 @@
   flex-wrap: wrap;
 }
 
+.export-notice {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--ribbon);
+}
+
 .element-switch {
   display: flex;
   gap: 0.3rem;

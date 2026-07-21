@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScriptStoreProvider } from './store';
 import { ScriptEditor } from './components/ScriptEditor';
 import { Toolbar } from './components/Toolbar';
@@ -12,12 +12,24 @@ function AppShell() {
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!exportNotice) return;
+    const timer = setTimeout(() => setExportNotice(null), 8000);
+    return () => clearTimeout(timer);
+  }, [exportNotice]);
 
   async function handleExport() {
     setExporting(true);
     try {
       const filename = `${(doc.titlePage.title || 'screenplay').replace(/[^a-z0-9]+/gi, '_')}.pdf`;
-      exportScriptToPdf(doc, filename);
+      const mode = exportScriptToPdf(doc, filename);
+      setExportNotice(
+        mode === 'opened-in-tab'
+          ? "Opened the PDF in a new tab — if nothing appeared, this preview may be blocking downloads. Open Scriptwriter in its own browser tab to export directly."
+          : null,
+      );
     } finally {
       setExporting(false);
     }
@@ -44,6 +56,11 @@ function AppShell() {
           </button>
         </div>
         <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
+        {exportNotice && (
+          <p className="export-notice" role="status">
+            {exportNotice}
+          </p>
+        )}
       </div>
       <div className={`title-page-collapse${showTitlePage ? ' open' : ''}`} inert={!showTitlePage}>
         <div className="title-page-collapse-inner">

@@ -142,7 +142,24 @@ function paginate(blocks: ScriptBlock[]): Page[] {
   return pages;
 }
 
-export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pdf'): void {
+// Sandboxed iframes (e.g. an embedded preview) can render the app fine but
+// silently block the anchor-click download jsPDF's save() relies on, unless
+// the embedder opts in with the `allow-downloads` sandbox flag. Opening the
+// PDF in a new tab instead only needs popup permission, which such embeds
+// more commonly allow — but since some sandboxes restrict both, the
+// caller uses the returned mode to warn the writer rather than assume it
+// worked.
+function isEmbeddedInIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+export type ExportMode = 'downloaded' | 'opened-in-tab';
+
+export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pdf'): ExportMode {
   const pdf = new jsPDF({ unit: 'in', format: 'letter' });
   pdf.setFont('courier', 'normal');
   pdf.setFontSize(FONT_SIZE);
@@ -185,5 +202,12 @@ export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pd
     }
   }
 
+  if (isEmbeddedInIframe()) {
+    const opened = window.open(pdf.output('bloburl').toString(), '_blank');
+    if (opened) return 'opened-in-tab';
+    pdf.save(filename);
+    return 'downloaded';
+  }
   pdf.save(filename);
+  return 'downloaded';
 }
