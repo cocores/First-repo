@@ -1,24 +1,66 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScriptStoreProvider } from './store';
-import { ScriptEditor } from './components/ScriptEditor';
+import { ScriptEditor, type JumpRequest } from './components/ScriptEditor';
 import { Toolbar } from './components/Toolbar';
 import { TitlePage } from './components/TitlePage';
+import { SceneNavigator } from './components/SceneNavigator';
 import { exportScriptToPdf } from './pdf/exportPdf';
+import { computeStats } from './format/stats';
 import { useScriptStore } from './store';
+import type { ScriptBlock } from './types';
 import './App.css';
 
+function currentSceneId(blocks: ScriptBlock[], focusedId: string | null): string | null {
+  if (!focusedId) return null;
+  const idx = blocks.findIndex((b) => b.id === focusedId);
+  if (idx === -1) return null;
+  for (let i = idx; i >= 0; i--) {
+    if (blocks[i].type === 'scene_heading' && blocks[i].text.trim()) return blocks[i].id;
+  }
+  return null;
+}
+
 function AppShell() {
-  const { doc } = useScriptStore();
+  const { doc, undo, redo } = useScriptStore();
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
+  const [showNavigator, setShowNavigator] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [jumpTo, setJumpTo] = useState<JumpRequest | null>(null);
+
+  const stats = useMemo(() => computeStats(doc.blocks), [doc.blocks]);
+  const activeSceneId = useMemo(() => currentSceneId(doc.blocks, focusedId), [doc.blocks, focusedId]);
 
   useEffect(() => {
     if (!exportNotice) return;
     const timer = setTimeout(() => setExportNotice(null), 8000);
     return () => clearTimeout(timer);
   }, [exportNotice]);
+
+  // Undo/redo is bound to `window`, not scoped to the editor: undoing can
+  // remove the block that currently holds focus (e.g. it un-splits two
+  // blocks back into one), which drops focus to <body>. A listener scoped
+  // to a subtree never sees events targeting an ancestor like <body>, so
+  // the very next Ctrl+Z would silently do nothing — worse, on some
+  // browsers it can fall through to a native undo on an unrelated element.
+  // Binding at the window level means it keeps working regardless of where
+  // focus lands.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [undo, redo]);
 
   async function handleExport() {
     setExporting(true);
@@ -35,6 +77,10 @@ function AppShell() {
     }
   }
 
+  function handleJumpToScene(id: string) {
+    setJumpTo({ id, nonce: Date.now() });
+  }
+
   return (
     <div className="app">
       <div className="deskbar">
@@ -43,17 +89,34 @@ function AppShell() {
             <span className="brand-mark">Scriptwriter</span>
             <span className="brand-doc">{doc.titlePage.title || 'Untitled Screenplay'}</span>
           </div>
-          <button
-            type="button"
-            className="link-btn"
-            aria-expanded={showTitlePage}
-            onClick={() => setShowTitlePage((v) => !v)}
-          >
-            {showTitlePage ? 'Hide title page' : 'Edit title page'}
-            <span className="link-btn-caret" aria-hidden="true">
-              ▾
-            </span>
-          </button>
+          <div className="deskbar-actions">
+            <p className="doc-stats">
+              {stats.pageCount} {stats.pageCount === 1 ? 'page' : 'pages'} · ~{stats.estimatedMinutes} min ·{' '}
+              {stats.wordCount} words
+            </p>
+            <button
+              type="button"
+              className="link-btn"
+              aria-expanded={showNavigator}
+              onClick={() => setShowNavigator((v) => !v)}
+            >
+              Scenes ({stats.sceneCount})
+              <span className="link-btn-caret" aria-hidden="true">
+                ▾
+              </span>
+            </button>
+            <button
+              type="button"
+              className="link-btn"
+              aria-expanded={showTitlePage}
+              onClick={() => setShowTitlePage((v) => !v)}
+            >
+              {showTitlePage ? 'Hide title page' : 'Edit title page'}
+              <span className="link-btn-caret" aria-hidden="true">
+                ▾
+              </span>
+            </button>
+          </div>
         </div>
         <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
         {exportNotice && (
@@ -67,13 +130,30 @@ function AppShell() {
           <TitlePage />
         </div>
       </div>
+      <SceneNavigator
+        isOpen={showNavigator}
+        blocks={doc.blocks}
+        currentSceneId={activeSceneId}
+        onJump={(id) => {
+          handleJumpToScene(id);
+          setShowNavigator(false);
+        }}
+      />
+      {showNavigator && (
+        <button
+          type="button"
+          className="scene-nav-scrim"
+          aria-label="Close scene navigator"
+          onClick={() => setShowNavigator(false)}
+        />
+      )}
       <main className="stage">
         <div className="page">
-          <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} />
+          <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
         </div>
         <p className="hint-bar">
           <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
-          <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>Tab</kbd> accept suggestion
+          <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>⌘/Ctrl Z</kbd> undo
         </p>
       </main>
     </div>

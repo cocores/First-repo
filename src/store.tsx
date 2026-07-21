@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer } from
 import type { ElementType, ScriptBlock, ScriptDocument, TitlePageInfo } from './types';
 
 const STORAGE_KEY = 'scriptwriter.document.v1';
+const MAX_HISTORY = 100;
+// Consecutive keystrokes in the same field within this window collapse into
+// one undo step, so undo doesn't require replaying every character typed.
+const COALESCE_MS = 700;
 
 function newId(): string {
   return crypto.randomUUID();
@@ -30,14 +34,14 @@ function loadDocument(): ScriptDocument {
   }
 }
 
-type Action =
-  | { type: 'SET_TEXT'; id: string; text: string }
+type DocAction =
+  | { type: 'SET_TEXT'; id: string; text: string; time: number }
   | { type: 'SET_TYPE'; id: string; elementType: ElementType }
   | { type: 'SPLIT_BLOCK'; id: string; caretPos: number; newType: ElementType; newId: string }
   | { type: 'MERGE_WITH_PREVIOUS'; id: string }
   | { type: 'SET_TITLE_PAGE'; field: keyof TitlePageInfo; value: string };
 
-function reducer(doc: ScriptDocument, action: Action): ScriptDocument {
+function docReducer(doc: ScriptDocument, action: DocAction): ScriptDocument {
   switch (action.type) {
     case 'SET_TEXT': {
       return {
@@ -81,8 +85,67 @@ function reducer(doc: ScriptDocument, action: Action): ScriptDocument {
   }
 }
 
+interface HistoryState {
+  past: ScriptDocument[];
+  present: ScriptDocument;
+  future: ScriptDocument[];
+  lastCoalesceKey: string | null;
+  lastCoalesceTime: number;
+}
+
+type HistoryAction = DocAction | { type: 'UNDO' } | { type: 'REDO' };
+
+function historyReducer(state: HistoryState, action: HistoryAction): HistoryState {
+  if (action.type === 'UNDO') {
+    if (state.past.length === 0) return state;
+    const previous = state.past[state.past.length - 1];
+    return {
+      past: state.past.slice(0, -1),
+      present: previous,
+      future: [state.present, ...state.future],
+      lastCoalesceKey: null,
+      lastCoalesceTime: 0,
+    };
+  }
+  if (action.type === 'REDO') {
+    if (state.future.length === 0) return state;
+    const [next, ...rest] = state.future;
+    return {
+      past: [...state.past, state.present].slice(-MAX_HISTORY),
+      present: next,
+      future: rest,
+      lastCoalesceKey: null,
+      lastCoalesceTime: 0,
+    };
+  }
+
+  const nextPresent = docReducer(state.present, action);
+  if (nextPresent === state.present) return state;
+
+  const time = action.type === 'SET_TEXT' ? action.time : state.lastCoalesceTime;
+  const coalesceKey = action.type === 'SET_TEXT' ? `SET_TEXT:${action.id}` : null;
+  const shouldCoalesce =
+    coalesceKey !== null && coalesceKey === state.lastCoalesceKey && time - state.lastCoalesceTime < COALESCE_MS;
+
+  return {
+    past: shouldCoalesce ? state.past : [...state.past, state.present].slice(-MAX_HISTORY),
+    present: nextPresent,
+    future: [],
+    lastCoalesceKey: coalesceKey,
+    lastCoalesceTime: time,
+  };
+}
+
+function initHistory(): HistoryState {
+  return { past: [], present: loadDocument(), future: [], lastCoalesceKey: null, lastCoalesceTime: 0 };
+}
+
 interface StoreContextValue {
   doc: ScriptDocument;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
   setText: (id: string, text: string) => void;
   setType: (id: string, elementType: ElementType) => void;
   splitBlock: (id: string, caretPos: number, newType: ElementType) => string;
@@ -93,7 +156,8 @@ interface StoreContextValue {
 const StoreContext = createContext<StoreContextValue | null>(null);
 
 export function ScriptStoreProvider({ children }: { children: React.ReactNode }) {
-  const [doc, dispatch] = useReducer(reducer, undefined, loadDocument);
+  const [state, dispatch] = useReducer(historyReducer, undefined, initHistory);
+  const { present: doc } = state;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
@@ -102,7 +166,11 @@ export function ScriptStoreProvider({ children }: { children: React.ReactNode })
   const value = useMemo<StoreContextValue>(
     () => ({
       doc,
-      setText: (id, text) => dispatch({ type: 'SET_TEXT', id, text }),
+      canUndo: state.past.length > 0,
+      canRedo: state.future.length > 0,
+      undo: () => dispatch({ type: 'UNDO' }),
+      redo: () => dispatch({ type: 'REDO' }),
+      setText: (id, text) => dispatch({ type: 'SET_TEXT', id, text, time: Date.now() }),
       setType: (id, elementType) => dispatch({ type: 'SET_TYPE', id, elementType }),
       splitBlock: (id, caretPos, newType) => {
         const id2 = newId();
@@ -112,7 +180,7 @@ export function ScriptStoreProvider({ children }: { children: React.ReactNode })
       mergeWithPrevious: (id) => dispatch({ type: 'MERGE_WITH_PREVIOUS', id }),
       setTitlePageField: (field, value) => dispatch({ type: 'SET_TITLE_PAGE', field, value }),
     }),
-    [doc],
+    [doc, state.past.length, state.future.length],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

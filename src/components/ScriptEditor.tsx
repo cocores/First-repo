@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useScriptStore } from '../store';
 import { cycleType, nextTypeOnEnter, transformText } from '../format/elements';
 import { blankLinesBefore } from '../format/spec';
@@ -8,14 +8,25 @@ import type { ElementType } from '../types';
 
 const NO_SUGGESTIONS: string[] = [];
 
+export interface JumpRequest {
+  id: string;
+  nonce: number;
+}
+
 interface ScriptEditorProps {
   focusedId: string | null;
   onFocusedChange: (id: string) => void;
+  jumpTo?: JumpRequest | null;
 }
 
-export function ScriptEditor({ focusedId, onFocusedChange }: ScriptEditorProps) {
+export function ScriptEditor({ focusedId, onFocusedChange, jumpTo }: ScriptEditorProps) {
   const { doc, setText, setType, splitBlock, mergeWithPrevious } = useScriptStore();
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+
+  useEffect(() => {
+    if (!jumpTo) return;
+    setFocusRequest({ id: jumpTo.id, caretPos: 'end' });
+  }, [jumpTo]);
 
   const handleChange = useCallback(
     (id: string, text: string) => {
@@ -116,6 +127,7 @@ export function ScriptEditor({ focusedId, onFocusedChange }: ScriptEditorProps) 
 }
 
 // Ctrl/Cmd+1..7 jump the focused block directly to a specific element type.
+// (Undo/redo are handled window-wide in App.tsx — see the comment there for why.)
 function handleGlobalShortcuts(
   blocks: { id: string; type: ElementType; text: string }[],
   focusedId: string | null,

@@ -35,6 +35,20 @@ from the "Edit title page" panel.
 
 The document autosaves to the browser's local storage as you type.
 
+## Navigating and revising
+
+- **Scenes (N)** opens a navigator listing every scene heading in order;
+  click one to jump straight to it. The scene containing your cursor is
+  highlighted.
+- The deskbar shows a live **page count, estimated screen time, and word
+  count** (one script page ≈ one minute of screen time, the standard
+  industry convention) so you always know where you stand against a page
+  target.
+- **Ctrl/Cmd+Z** undoes, **Ctrl/Cmd+Shift+Z** (or **Ctrl+Y**) redoes.
+  Consecutive keystrokes in the same field collapse into a single undo
+  step; structural edits (new lines, retyped elements) are each their own
+  step. Undo/redo works regardless of what currently has focus.
+
 ## Development
 
 ```bash

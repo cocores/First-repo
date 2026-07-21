@@ -80,15 +80,15 @@ function renderBlock(block: ScriptBlock): RenderedBlock {
   return { type: block.type, lines };
 }
 
-interface PlacedLine extends RenderLine {
+export interface PlacedLine extends RenderLine {
   lineIndex: number;
 }
 
-interface Page {
+export interface Page {
   lines: PlacedLine[];
 }
 
-function paginate(blocks: ScriptBlock[]): Page[] {
+export function paginate(blocks: ScriptBlock[]): Page[] {
   const nonEmpty = blocks.filter((b) => b.text.trim().length > 0);
 
   // Group blocks that must stay on the same page as whatever follows them.

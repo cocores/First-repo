@@ -11,7 +11,7 @@ interface ToolbarProps {
 const SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7'];
 
 export function Toolbar({ focusedId, onExport, exporting }: ToolbarProps) {
-  const { doc, setType, setText } = useScriptStore();
+  const { doc, setType, setText, undo, redo, canUndo, canRedo } = useScriptStore();
   const focusedBlock = doc.blocks.find((b) => b.id === focusedId) ?? null;
 
   function selectType(type: ElementType) {
@@ -37,9 +37,25 @@ export function Toolbar({ focusedId, onExport, exporting }: ToolbarProps) {
           </button>
         ))}
       </div>
-      <button type="button" className="export-btn" onClick={onExport} disabled={exporting}>
-        {exporting ? 'Exporting…' : 'Export PDF'}
-      </button>
+      <div className="toolbar-actions">
+        <div className="history-controls" role="group" aria-label="Undo / redo">
+          <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">
+            ↺
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl/Cmd+Shift+Z)"
+            aria-label="Redo"
+          >
+            ↻
+          </button>
+        </div>
+        <button type="button" className="export-btn" onClick={onExport} disabled={exporting}>
+          {exporting ? 'Exporting…' : 'Export PDF'}
+        </button>
+      </div>
     </div>
   );
 }
