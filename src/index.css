@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #e9e9ec;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1b1b1e;
+  }
+}

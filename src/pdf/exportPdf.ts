@@ -1,0 +1,189 @@
+import { jsPDF } from 'jspdf';
+import type { ElementType, ScriptBlock, ScriptDocument } from '../types';
+import {
+  CONTENT_RIGHT_EDGE_IN,
+  ELEMENT_LAYOUT,
+  LINES_PER_INCH,
+  LINES_PER_PAGE,
+  MARGIN_LEFT_IN,
+  MARGIN_TOP_IN,
+  PAGE_HEIGHT_IN,
+  PAGE_WIDTH_IN,
+  blankLinesBefore,
+  maxCharsForElement,
+} from '../format/spec';
+
+const FONT_SIZE = 12;
+const LINE_HEIGHT_IN = 1 / LINES_PER_INCH;
+const BASELINE_OFFSET_IN = 0.11;
+
+// Element types that must never be the last thing on a page, separated from
+// the material they introduce (a lone slugline or character cue at the
+// bottom of a page reads as broken formatting to any script reader).
+const ATTACH_TO_NEXT = new Set<ElementType>(['scene_heading', 'character', 'parenthetical', 'transition']);
+
+interface RenderLine {
+  text: string;
+  leftIn: number;
+  align: 'left' | 'right';
+}
+
+interface RenderedBlock {
+  type: ElementType;
+  lines: RenderLine[];
+}
+
+function wrapText(text: string, maxChars: number): string[] {
+  const paragraphs = text.split('\n');
+  const out: string[] = [];
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      out.push('');
+      continue;
+    }
+    let line = '';
+    for (const word of words) {
+      let w = word;
+      while (w.length > maxChars) {
+        // Hard-break a word too long to ever fit on its own line.
+        const room = maxChars - line.length - (line ? 1 : 0);
+        if (room > 1) {
+          line = line ? `${line} ${w.slice(0, room)}` : w.slice(0, room);
+          w = w.slice(room);
+        }
+        out.push(line);
+        line = '';
+      }
+      const candidate = line ? `${line} ${w}` : w;
+      if (candidate.length > maxChars) {
+        out.push(line);
+        line = w;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) out.push(line);
+  }
+  return out;
+}
+
+function renderBlock(block: ScriptBlock): RenderedBlock {
+  const layout = ELEMENT_LAYOUT[block.type];
+  const maxChars = maxCharsForElement(block.type);
+  const wrapped = wrapText(block.text, maxChars);
+  const lines: RenderLine[] = wrapped.map((text) => ({
+    text,
+    leftIn: layout.align === 'right' ? CONTENT_RIGHT_EDGE_IN : layout.leftIn,
+    align: layout.align ?? 'left',
+  }));
+  return { type: block.type, lines };
+}
+
+interface PlacedLine extends RenderLine {
+  lineIndex: number;
+}
+
+interface Page {
+  lines: PlacedLine[];
+}
+
+function paginate(blocks: ScriptBlock[]): Page[] {
+  const nonEmpty = blocks.filter((b) => b.text.trim().length > 0);
+
+  // Group blocks that must stay on the same page as whatever follows them.
+  const groups: ScriptBlock[][] = [];
+  for (const block of nonEmpty) {
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && ATTACH_TO_NEXT.has(lastGroup[lastGroup.length - 1].type)) {
+      lastGroup.push(block);
+    } else {
+      groups.push([block]);
+    }
+  }
+
+  const pages: Page[] = [{ lines: [] }];
+  let currentLine = 0;
+  let prevType: ElementType | null = null;
+  let firstOnPage = true;
+
+  for (const group of groups) {
+    const rendered = group.map(renderBlock);
+
+    // Compute total line count this group needs, including inter-block gaps.
+    let needed = firstOnPage ? 0 : blankLinesBefore(prevType, group[0].type);
+    for (let i = 0; i < rendered.length; i++) {
+      if (i > 0) needed += blankLinesBefore(group[i - 1].type, group[i].type);
+      needed += Math.max(1, rendered[i].lines.length);
+    }
+
+    if (!firstOnPage && currentLine + needed > LINES_PER_PAGE) {
+      pages.push({ lines: [] });
+      currentLine = 0;
+      firstOnPage = true;
+    }
+
+    const page = pages[pages.length - 1];
+    currentLine += firstOnPage ? 0 : blankLinesBefore(prevType, group[0].type);
+
+    for (let i = 0; i < rendered.length; i++) {
+      if (i > 0) {
+        currentLine += blankLinesBefore(group[i - 1].type, group[i].type);
+      }
+      for (const line of rendered[i].lines) {
+        page.lines.push({ ...line, lineIndex: currentLine });
+        currentLine += 1;
+      }
+      prevType = rendered[i].type;
+    }
+    firstOnPage = false;
+  }
+
+  return pages;
+}
+
+export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pdf'): void {
+  const pdf = new jsPDF({ unit: 'in', format: 'letter' });
+  pdf.setFont('courier', 'normal');
+  pdf.setFontSize(FONT_SIZE);
+
+  // --- Title page ---
+  const { title, author, contact } = doc.titlePage;
+  pdf.setFont('courier', 'bold');
+  const titleLines = pdf.splitTextToSize(title.toUpperCase() || 'UNTITLED', 5);
+  let y = 3.5;
+  for (const line of titleLines) {
+    pdf.text(line, PAGE_WIDTH_IN / 2, y, { align: 'center' });
+    y += LINE_HEIGHT_IN * 1.5;
+  }
+  pdf.setFont('courier', 'normal');
+  y += LINE_HEIGHT_IN;
+  pdf.text('by', PAGE_WIDTH_IN / 2, y, { align: 'center' });
+  y += LINE_HEIGHT_IN * 1.5;
+  pdf.text(author || 'Unknown', PAGE_WIDTH_IN / 2, y, { align: 'center' });
+
+  if (contact.trim()) {
+    const contactLines = contact.split('\n');
+    let cy = PAGE_HEIGHT_IN - MARGIN_TOP_IN - LINE_HEIGHT_IN * (contactLines.length - 1);
+    for (const line of contactLines) {
+      pdf.text(line, MARGIN_LEFT_IN, cy);
+      cy += LINE_HEIGHT_IN;
+    }
+  }
+
+  // --- Script pages ---
+  const pages = paginate(doc.blocks);
+  for (let p = 0; p < pages.length; p++) {
+    pdf.addPage();
+    if (p > 0) {
+      pdf.text(`${p + 2}.`, CONTENT_RIGHT_EDGE_IN, 0.6, { align: 'right' });
+    }
+    for (const line of pages[p].lines) {
+      if (!line.text) continue;
+      const yPos = MARGIN_TOP_IN + line.lineIndex * LINE_HEIGHT_IN + BASELINE_OFFSET_IN;
+      pdf.text(line.text, line.leftIn, yPos, { align: line.align });
+    }
+  }
+
+  pdf.save(filename);
+}
