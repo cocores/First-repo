@@ -28,10 +28,15 @@ industry-standard screenplay PDF.
 
 "Export PDF" produces a US Letter document in the standard screenplay
 specification: Courier 12pt, 1.5in left / 1in right / 1in top / 1in bottom
-margins, correct per-element indents, page numbers, and pagination that
-keeps scene headings and character cues from being orphaned at the bottom
-of a page. A simple title page (title, author, contact info) is generated
-from the "Edit title page" panel.
+margins, correct per-element indents (Character 3.7in, Parenthetical
+3.1in, Dialogue 2.5in, Transition flush right), and page numbers starting
+on page 2 (page 1 is never numbered). Pagination keeps scene headings and
+character cues from being orphaned at the bottom of a page, and a
+monologue too long to fit on one page splits with "(MORE)" at the bottom
+and "CHARACTER (CONT'D)" atop the continuation, exactly as Final Draft
+and every other screenwriting program handle it. A simple title page
+(title, author, contact info) is generated from the "Edit title page"
+panel.
 
 The document autosaves to the browser's local storage as you type.
 

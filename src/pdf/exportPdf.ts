@@ -106,6 +106,21 @@ export function paginate(blocks: ScriptBlock[]): Page[] {
   let currentLine = 0;
   let prevType: ElementType | null = null;
   let firstOnPage = true;
+  // The most recent CHARACTER cue's name, so a dialogue block split across a
+  // page break can print "NAME (CONT'D)" atop the continuation — the same
+  // convention every screenwriting program uses for a monologue too long to
+  // fit on one page.
+  let currentCharacterName = '';
+
+  function currentPage(): Page {
+    return pages[pages.length - 1];
+  }
+
+  function startNewPage() {
+    pages.push({ lines: [] });
+    currentLine = 0;
+    firstOnPage = true;
+  }
 
   for (const group of groups) {
     const rendered = group.map(renderBlock);
@@ -118,22 +133,68 @@ export function paginate(blocks: ScriptBlock[]): Page[] {
     }
 
     if (!firstOnPage && currentLine + needed > LINES_PER_PAGE) {
-      pages.push({ lines: [] });
-      currentLine = 0;
-      firstOnPage = true;
+      startNewPage();
     }
 
-    const page = pages[pages.length - 1];
     currentLine += firstOnPage ? 0 : blankLinesBefore(prevType, group[0].type);
 
     for (let i = 0; i < rendered.length; i++) {
       if (i > 0) {
         currentLine += blankLinesBefore(group[i - 1].type, group[i].type);
       }
-      for (const line of rendered[i].lines) {
-        page.lines.push({ ...line, lineIndex: currentLine });
-        currentLine += 1;
+
+      if (group[i].type === 'character') {
+        currentCharacterName = group[i].text.trim().toUpperCase();
       }
+
+      if (rendered[i].type === 'dialogue') {
+        // Dialogue is the one element allowed to split mid-block, and only
+        // it gets the (MORE) / "NAME (CONT'D)" treatment when it does.
+        let remainingLines = rendered[i].lines;
+        while (remainingLines.length > 0) {
+          const roomLeft = LINES_PER_PAGE - currentLine;
+          if (remainingLines.length <= roomLeft) {
+            for (const line of remainingLines) {
+              currentPage().lines.push({ ...line, lineIndex: currentLine });
+              currentLine += 1;
+            }
+            remainingLines = [];
+          } else {
+            const fitCount = Math.max(0, roomLeft - 1); // reserve a line for "(MORE)"
+            for (const line of remainingLines.slice(0, fitCount)) {
+              currentPage().lines.push({ ...line, lineIndex: currentLine });
+              currentLine += 1;
+            }
+            currentPage().lines.push({
+              text: '(MORE)',
+              leftIn: ELEMENT_LAYOUT.parenthetical.leftIn,
+              align: 'left',
+              lineIndex: currentLine,
+            });
+            currentLine += 1;
+            remainingLines = remainingLines.slice(fitCount);
+            startNewPage();
+            if (currentCharacterName) {
+              currentPage().lines.push({
+                text: `${currentCharacterName} (CONT'D)`,
+                leftIn: ELEMENT_LAYOUT.character.leftIn,
+                align: 'left',
+                lineIndex: currentLine,
+              });
+              currentLine += 1;
+            }
+          }
+        }
+      } else {
+        // Every other element is free to spill onto a fresh page with no
+        // marker — only dialogue is ever attributed to a specific speaker.
+        for (const line of rendered[i].lines) {
+          if (currentLine >= LINES_PER_PAGE) startNewPage();
+          currentPage().lines.push({ ...line, lineIndex: currentLine });
+          currentLine += 1;
+        }
+      }
+
       prevType = rendered[i].type;
     }
     firstOnPage = false;
@@ -193,7 +254,7 @@ export function exportScriptToPdf(doc: ScriptDocument, filename = 'screenplay.pd
   for (let p = 0; p < pages.length; p++) {
     pdf.addPage();
     if (p > 0) {
-      pdf.text(`${p + 2}.`, CONTENT_RIGHT_EDGE_IN, 0.6, { align: 'right' });
+      pdf.text(`${p + 2}.`, CONTENT_RIGHT_EDGE_IN, 0.5, { align: 'right' });
     }
     for (const line of pages[p].lines) {
       if (!line.text) continue;
