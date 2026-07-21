@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScriptStoreProvider } from './store';
 import { ScriptEditor, type JumpRequest } from './components/ScriptEditor';
 import { Toolbar } from './components/Toolbar';
 import { TitlePage } from './components/TitlePage';
 import { SceneNavigator } from './components/SceneNavigator';
+import { ProjectSwitcher } from './components/ProjectSwitcher';
+import { TabBar } from './components/TabBar';
 import { exportScriptToPdf } from './pdf/exportPdf';
 import { computeStats } from './format/stats';
 import { useScriptStore } from './store';
@@ -21,7 +23,7 @@ function currentSceneId(blocks: ScriptBlock[], focusedId: string | null): string
 }
 
 function AppShell() {
-  const { doc, undo, redo } = useScriptStore();
+  const { doc, undo, redo, activeProjectId, activeTabId } = useScriptStore();
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
@@ -31,6 +33,35 @@ function AppShell() {
 
   const stats = useMemo(() => computeStats(doc.blocks), [doc.blocks]);
   const activeSceneId = useMemo(() => currentSceneId(doc.blocks, focusedId), [doc.blocks, focusedId]);
+
+  // The sticky deskbar establishes its own stacking context (position:
+  // sticky + z-index), so no z-index a dropdown's click-outside-to-close
+  // scrim can carry will let it cover the deskbar's own buttons without
+  // ALSO out-ranking the deskbar entirely — which would then hide the
+  // scene navigator's slide-out panel behind it. The real fix is for these
+  // full-screen scrims to simply start below the deskbar instead of
+  // overlapping it, so its buttons are never blocked in the first place.
+  // The deskbar's height varies (tab bar, export notice), so it's measured
+  // rather than hard-coded.
+  const deskbarRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = deskbarRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty('--deskbar-height', `${entry.contentRect.height}px`);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Block ids are scoped to a single tab's document, so a focusedId or
+  // pending scene-jump left over from the previous tab is meaningless (and
+  // will never match anything) once the active project or tab changes.
+  useEffect(() => {
+    setFocusedId(doc.blocks[0]?.id ?? null);
+    setJumpTo(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId, activeTabId]);
 
   useEffect(() => {
     if (!exportNotice) return;
@@ -83,11 +114,11 @@ function AppShell() {
 
   return (
     <div className="app">
-      <div className="deskbar">
+      <div className="deskbar" ref={deskbarRef}>
         <div className="deskbar-row">
           <div className="brand">
             <span className="brand-mark">Scriptwriter</span>
-            <span className="brand-doc">{doc.titlePage.title || 'Untitled Screenplay'}</span>
+            <ProjectSwitcher />
           </div>
           <div className="deskbar-actions">
             <p className="doc-stats">
@@ -118,6 +149,7 @@ function AppShell() {
             </button>
           </div>
         </div>
+        <TabBar />
         <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
         {exportNotice && (
           <p className="export-notice" role="status">
@@ -149,7 +181,7 @@ function AppShell() {
       )}
       <main className="stage">
         <div className="page">
-          <ScriptEditor focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
+          <ScriptEditor key={activeTabId} focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
         </div>
         <p className="hint-bar">
           <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;

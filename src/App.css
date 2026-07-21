@@ -44,13 +44,138 @@
   white-space: nowrap;
 }
 
-.brand-doc {
+.project-switcher {
+  position: relative;
+}
+
+.dropdown-scrim {
+  position: fixed;
+  /* Starts below the sticky deskbar (see the ResizeObserver in App.tsx)
+     instead of at the very top, so it never covers the deskbar's own
+     buttons — a stacking context the deskbar establishes means no
+     descendant z-index could out-rank this scrim without ALSO out-ranking
+     the deskbar itself, which would then bury the scene navigator panel. */
+  top: var(--deskbar-height, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 35;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+.project-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: max-content;
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--desk-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+}
+
+.project-menu-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.project-menu-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 3px;
+}
+
+.project-menu-list li.active {
+  background: var(--ribbon);
+}
+
+.project-menu-list li.active .project-menu-name {
+  color: var(--ribbon-ink);
+}
+
+.project-menu-list li.active .icon-btn {
+  color: var(--ribbon-ink);
+  opacity: 0.8;
+}
+
+.project-menu-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.5rem;
   font-family: var(--font-sans);
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.82rem;
+  color: var(--ink);
+  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-menu-row-actions {
+  display: flex;
+  gap: 2px;
+  padding-right: 0.25rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  background: var(--desk);
+}
+
+.project-rename-input,
+.tab-rename-input {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--desk);
+  border: 1px solid var(--ribbon);
+  border-radius: 3px;
+  padding: 0.35rem 0.5rem;
+  width: 100%;
+}
+
+.project-menu-new {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 0.5rem;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.project-menu-new:hover {
+  color: var(--ribbon);
 }
 
 .deskbar-actions {
@@ -70,6 +195,11 @@
 }
 
 .link-btn {
+  position: relative;
+  /* Above both full-screen scrims (.scene-nav-scrim, .dropdown-scrim) so
+     re-clicking an open dropdown's own trigger closes it instead of the
+     scrim silently eating the click. */
+  z-index: 36;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -98,6 +228,86 @@
 
 .link-btn:hover {
   color: var(--ribbon);
+}
+
+.tab-bar {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0.6rem 1.5rem 0;
+  overflow-x: auto;
+}
+
+.tab-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: var(--desk);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-pill:hover {
+  color: var(--ink);
+}
+
+.tab-pill.active {
+  background: var(--paper);
+  color: var(--paper-text);
+  border-color: var(--border);
+  font-weight: 600;
+}
+
+.tab-pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14ch;
+}
+
+.tab-close {
+  background: none;
+  border: none;
+  padding: 0 0.15rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  color: var(--ribbon);
+}
+
+.tab-add {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.tab-add:hover {
+  color: var(--ribbon);
+  border-color: var(--ribbon);
+}
+
+.tab-rename-input {
+  max-width: 12ch;
 }
 
 .toolbar {
@@ -334,7 +544,12 @@
 
 .scene-nav-scrim {
   position: fixed;
-  inset: 0;
+  /* See the comment on .dropdown-scrim — starts below the deskbar so its
+     buttons stay clickable while the navigator is open. */
+  top: var(--deskbar-height, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 25;
   background: rgba(0, 0, 0, 0.25);
   border: none;
