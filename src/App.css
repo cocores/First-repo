@@ -311,7 +311,13 @@
   display: flex;
 }
 
+.block-input-wrap {
+  position: relative;
+}
+
 .block-textarea {
+  display: block;
+  width: 100%;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -323,12 +329,30 @@
   color: var(--paper-text);
   padding: 0;
   min-height: 1.15em;
+  position: relative;
 }
 
 .block-textarea::placeholder {
   color: var(--paper-rule);
   font-weight: 400;
   text-transform: none;
+}
+
+.suggestion-ghost {
+  position: absolute;
+  inset: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.ghost-spacer {
+  color: transparent;
+}
+
+.ghost-remainder {
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 .hint-bar {

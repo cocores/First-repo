@@ -17,6 +17,10 @@ industry-standard screenplay PDF.
 - Scene headings, character cues, transitions, and shots auto-uppercase as
   you type.
 - The page on screen mirrors the exported PDF's margins and indents.
+- Scene headings and character names you've already used are suggested
+  inline as you type a matching prefix (like Final Draft/WriterDuet's
+  auto-complete). Press **Tab** or **Enter** to accept the suggestion; keep
+  typing to ignore it.
 
 ## Export
 

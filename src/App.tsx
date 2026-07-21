@@ -56,7 +56,7 @@ function AppShell() {
         </div>
         <p className="hint-bar">
           <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
-          <kbd>⌘/Ctrl 1–7</kbd> jump to element
+          <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>Tab</kbd> accept suggestion
         </p>
       </main>
     </div>

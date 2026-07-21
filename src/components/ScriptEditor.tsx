@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useScriptStore } from '../store';
 import { cycleType, nextTypeOnEnter, transformText } from '../format/elements';
 import { blankLinesBefore } from '../format/spec';
+import { getSuggestion } from '../format/suggestions';
 import { Block, type FocusRequest } from './Block';
 import type { ElementType } from '../types';
 
@@ -35,14 +36,24 @@ export function ScriptEditor({ focusedId, onFocusedChange }: ScriptEditorProps) 
   );
 
   const handleEnter = useCallback(
-    (id: string, caretPos: number) => {
+    (id: string, caretPos: number, overrideText?: string) => {
       const block = doc.blocks.find((b) => b.id === id);
       if (!block) return;
+      if (overrideText !== undefined) setText(id, overrideText);
       const newType = nextTypeOnEnter(block.type);
-      const newId = splitBlock(id, caretPos, newType);
+      const effectiveCaretPos = overrideText !== undefined ? overrideText.length : caretPos;
+      const newId = splitBlock(id, effectiveCaretPos, newType);
       setFocusRequest({ id: newId, caretPos: 0 });
     },
-    [doc.blocks, splitBlock],
+    [doc.blocks, splitBlock, setText],
+  );
+
+  const handleAcceptSuggestion = useCallback(
+    (id: string, fullText: string) => {
+      setText(id, fullText);
+      setFocusRequest({ id, caretPos: 'end' });
+    },
+    [setText],
   );
 
   const handleBackspaceAtStart = useCallback(
@@ -83,12 +94,14 @@ export function ScriptEditor({ focusedId, onFocusedChange }: ScriptEditorProps) 
           block={block}
           isFocused={focusedId === block.id}
           blankLinesBefore={i === 0 ? 0 : blankLinesBefore(doc.blocks[i - 1].type, block.type)}
+          suggestion={focusedId === block.id ? getSuggestion(doc.blocks, block.id, block.type, block.text) : null}
           focusRequest={focusRequest}
           onFocusHandled={() => setFocusRequest(null)}
           onFocus={onFocusedChange}
           onChange={handleChange}
           onCycleType={handleCycleType}
           onEnter={handleEnter}
+          onAcceptSuggestion={handleAcceptSuggestion}
           onBackspaceAtStart={handleBackspaceAtStart}
           onArrowUpAtStart={handleArrowUp}
           onArrowDownAtEnd={handleArrowDown}
