@@ -144,30 +144,45 @@ function tabReducer(tab: Tab, action: DocAction | { type: 'UNDO' } | { type: 'RE
   };
 }
 
-// --- A project is a folder of tabs ---
+// --- A project holds tabs; an optional folder groups several projects ---
 
 interface Project {
   id: string;
   name: string;
+  folderId: string | null;
   tabs: Tab[];
   activeTabId: string;
 }
 
-function newProject(name: string, tabs?: Tab[]): Project {
+function newProject(name: string, folderId: string | null = null, tabs?: Tab[]): Project {
   const projectTabs = tabs && tabs.length > 0 ? tabs : [newTab('Draft 1')];
-  return { id: newId(), name, tabs: projectTabs, activeTabId: projectTabs[0].id };
+  return { id: newId(), name, folderId, tabs: projectTabs, activeTabId: projectTabs[0].id };
+}
+
+interface Folder {
+  id: string;
+  name: string;
+}
+
+function newFolder(name: string): Folder {
+  return { id: newId(), name };
 }
 
 interface AppState {
+  folders: Folder[];
   projects: Project[];
   activeProjectId: string;
 }
 
 type ManagementAction =
-  | { type: 'CREATE_PROJECT'; name: string }
+  | { type: 'CREATE_PROJECT'; name: string; folderId?: string | null }
   | { type: 'RENAME_PROJECT'; projectId: string; name: string }
   | { type: 'DELETE_PROJECT'; projectId: string }
+  | { type: 'MOVE_PROJECT'; projectId: string; folderId: string | null }
   | { type: 'SET_ACTIVE_PROJECT'; projectId: string }
+  | { type: 'CREATE_FOLDER'; name: string }
+  | { type: 'RENAME_FOLDER'; folderId: string; name: string }
+  | { type: 'DELETE_FOLDER'; folderId: string }
   | { type: 'CREATE_TAB'; name: string }
   | { type: 'RENAME_TAB'; tabId: string; name: string }
   | { type: 'CLOSE_TAB'; tabId: string }
@@ -185,8 +200,8 @@ function updateActiveProject(state: AppState, fn: (project: Project) => Project)
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'CREATE_PROJECT': {
-      const project = newProject(action.name);
-      return { projects: [...state.projects, project], activeProjectId: project.id };
+      const project = newProject(action.name, action.folderId ?? null);
+      return { ...state, projects: [...state.projects, project], activeProjectId: project.id };
     }
     case 'RENAME_PROJECT': {
       return {
@@ -198,11 +213,35 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const remaining = state.projects.filter((p) => p.id !== action.projectId);
       const projects = remaining.length > 0 ? remaining : [newProject('Untitled Project')];
       const activeProjectId = state.activeProjectId === action.projectId ? projects[0].id : state.activeProjectId;
-      return { projects, activeProjectId };
+      return { ...state, projects, activeProjectId };
+    }
+    case 'MOVE_PROJECT': {
+      return {
+        ...state,
+        projects: state.projects.map((p) => (p.id === action.projectId ? { ...p, folderId: action.folderId } : p)),
+      };
     }
     case 'SET_ACTIVE_PROJECT': {
       if (!state.projects.some((p) => p.id === action.projectId)) return state;
       return { ...state, activeProjectId: action.projectId };
+    }
+    case 'CREATE_FOLDER': {
+      return { ...state, folders: [...state.folders, newFolder(action.name)] };
+    }
+    case 'RENAME_FOLDER': {
+      return {
+        ...state,
+        folders: state.folders.map((f) => (f.id === action.folderId ? { ...f, name: action.name } : f)),
+      };
+    }
+    case 'DELETE_FOLDER': {
+      // Deleting a folder never deletes the projects inside it — they just
+      // become unfiled, back at the top level of the sidebar.
+      return {
+        ...state,
+        folders: state.folders.filter((f) => f.id !== action.folderId),
+        projects: state.projects.map((p) => (p.folderId === action.folderId ? { ...p, folderId: null } : p)),
+      };
     }
     case 'CREATE_TAB': {
       return updateActiveProject(state, (project) => {
@@ -246,7 +285,14 @@ function loadState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AppState;
-      if (parsed.projects?.length > 0) return parsed;
+      if (parsed.projects?.length > 0) {
+        // Older saves predate folders and projects' folderId field.
+        return {
+          folders: parsed.folders ?? [],
+          projects: parsed.projects.map((p) => ({ ...p, folderId: p.folderId ?? null })),
+          activeProjectId: parsed.activeProjectId,
+        };
+      }
     }
   } catch {
     // fall through to migration / defaults
@@ -258,8 +304,8 @@ function loadState(): AppState {
     if (legacyRaw) {
       const legacyDoc = JSON.parse(legacyRaw) as ScriptDocument;
       if (legacyDoc?.blocks?.length > 0) {
-        const project = newProject('My Project', [newTab('Draft 1', legacyDoc)]);
-        return { projects: [project], activeProjectId: project.id };
+        const project = newProject('My Project', null, [newTab('Draft 1', legacyDoc)]);
+        return { folders: [], projects: [project], activeProjectId: project.id };
       }
     }
   } catch {
@@ -267,12 +313,16 @@ function loadState(): AppState {
   }
 
   const project = newProject('My Project');
-  return { projects: [project], activeProjectId: project.id };
+  return { folders: [], projects: [project], activeProjectId: project.id };
 }
 
 interface NamedRef {
   id: string;
   name: string;
+}
+
+interface ProjectRef extends NamedRef {
+  folderId: string | null;
 }
 
 interface StoreContextValue {
@@ -288,13 +338,20 @@ interface StoreContextValue {
   mergeWithPrevious: (id: string) => void;
   setTitlePageField: (field: keyof TitlePageInfo, value: string) => void;
 
-  // Projects (folders of tabs).
-  projects: NamedRef[];
+  // Folders group projects in the sidebar.
+  folders: NamedRef[];
+  createFolder: (name: string) => void;
+  renameFolder: (id: string, name: string) => void;
+  deleteFolder: (id: string) => void;
+
+  // Projects, each optionally filed under a folder.
+  projects: ProjectRef[];
   activeProjectId: string;
   activeProjectName: string;
-  createProject: (name: string) => void;
+  createProject: (name: string, folderId?: string | null) => void;
   renameProject: (id: string, name: string) => void;
   deleteProject: (id: string) => void;
+  moveProject: (id: string, folderId: string | null) => void;
   setActiveProject: (id: string) => void;
 
   // Tabs within the active project.
@@ -335,12 +392,18 @@ export function ScriptStoreProvider({ children }: { children: React.ReactNode })
       mergeWithPrevious: (id) => dispatch({ type: 'MERGE_WITH_PREVIOUS', id }),
       setTitlePageField: (field, value) => dispatch({ type: 'SET_TITLE_PAGE', field, value }),
 
-      projects: state.projects.map((p) => ({ id: p.id, name: p.name })),
+      folders: state.folders.map((f) => ({ id: f.id, name: f.name })),
+      createFolder: (name) => dispatch({ type: 'CREATE_FOLDER', name }),
+      renameFolder: (id, name) => dispatch({ type: 'RENAME_FOLDER', folderId: id, name }),
+      deleteFolder: (id) => dispatch({ type: 'DELETE_FOLDER', folderId: id }),
+
+      projects: state.projects.map((p) => ({ id: p.id, name: p.name, folderId: p.folderId })),
       activeProjectId: activeProject.id,
       activeProjectName: activeProject.name,
-      createProject: (name) => dispatch({ type: 'CREATE_PROJECT', name }),
+      createProject: (name, folderId) => dispatch({ type: 'CREATE_PROJECT', name, folderId }),
       renameProject: (id, name) => dispatch({ type: 'RENAME_PROJECT', projectId: id, name }),
       deleteProject: (id) => dispatch({ type: 'DELETE_PROJECT', projectId: id }),
+      moveProject: (id, folderId) => dispatch({ type: 'MOVE_PROJECT', projectId: id, folderId }),
       setActiveProject: (id) => dispatch({ type: 'SET_ACTIVE_PROJECT', projectId: id }),
 
       tabs: activeProject.tabs.map((t) => ({ id: t.id, name: t.name })),

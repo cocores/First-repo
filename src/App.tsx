@@ -4,7 +4,7 @@ import { ScriptEditor, type JumpRequest } from './components/ScriptEditor';
 import { Toolbar } from './components/Toolbar';
 import { TitlePage } from './components/TitlePage';
 import { SceneNavigator } from './components/SceneNavigator';
-import { ProjectSwitcher } from './components/ProjectSwitcher';
+import { Sidebar } from './components/Sidebar';
 import { TabBar } from './components/TabBar';
 import { exportScriptToPdf } from './pdf/exportPdf';
 import { computeStats } from './format/stats';
@@ -23,11 +23,12 @@ function currentSceneId(blocks: ScriptBlock[], focusedId: string | null): string
 }
 
 function AppShell() {
-  const { doc, undo, redo, activeProjectId, activeTabId } = useScriptStore();
+  const { doc, undo, redo, activeProjectId, activeProjectName, activeTabId } = useScriptStore();
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
   const [showNavigator, setShowNavigator] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [jumpTo, setJumpTo] = useState<JumpRequest | null>(null);
 
@@ -113,81 +114,96 @@ function AppShell() {
   }
 
   return (
-    <div className="app">
-      <div className="deskbar" ref={deskbarRef}>
-        <div className="deskbar-row">
-          <div className="brand">
-            <span className="brand-mark">Scriptwriter</span>
-            <ProjectSwitcher />
+    <div className="app-layout">
+      <div className={`sidebar-dock${showSidebar ? '' : ' collapsed'}`}>
+        <Sidebar />
+      </div>
+      <div className="app">
+        <div className="deskbar" ref={deskbarRef}>
+          <div className="deskbar-row">
+            <div className="brand">
+              <button
+                type="button"
+                className="icon-btn sidebar-toggle"
+                title={showSidebar ? 'Hide projects sidebar' : 'Show projects sidebar'}
+                aria-label={showSidebar ? 'Hide projects sidebar' : 'Show projects sidebar'}
+                aria-pressed={showSidebar}
+                onClick={() => setShowSidebar((v) => !v)}
+              >
+                ☰
+              </button>
+              <span className="brand-mark">Scriptwriter</span>
+              <span className="brand-project">{activeProjectName}</span>
+            </div>
+            <div className="deskbar-actions">
+              <p className="doc-stats">
+                {stats.pageCount} {stats.pageCount === 1 ? 'page' : 'pages'} · ~{stats.estimatedMinutes} min ·{' '}
+                {stats.wordCount} words
+              </p>
+              <button
+                type="button"
+                className="link-btn"
+                aria-expanded={showNavigator}
+                onClick={() => setShowNavigator((v) => !v)}
+              >
+                Scenes ({stats.sceneCount})
+                <span className="link-btn-caret" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+              <button
+                type="button"
+                className="link-btn"
+                aria-expanded={showTitlePage}
+                onClick={() => setShowTitlePage((v) => !v)}
+              >
+                {showTitlePage ? 'Hide title page' : 'Edit title page'}
+                <span className="link-btn-caret" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+            </div>
           </div>
-          <div className="deskbar-actions">
-            <p className="doc-stats">
-              {stats.pageCount} {stats.pageCount === 1 ? 'page' : 'pages'} · ~{stats.estimatedMinutes} min ·{' '}
-              {stats.wordCount} words
+          <TabBar />
+          <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
+          {exportNotice && (
+            <p className="export-notice" role="status">
+              {exportNotice}
             </p>
-            <button
-              type="button"
-              className="link-btn"
-              aria-expanded={showNavigator}
-              onClick={() => setShowNavigator((v) => !v)}
-            >
-              Scenes ({stats.sceneCount})
-              <span className="link-btn-caret" aria-hidden="true">
-                ▾
-              </span>
-            </button>
-            <button
-              type="button"
-              className="link-btn"
-              aria-expanded={showTitlePage}
-              onClick={() => setShowTitlePage((v) => !v)}
-            >
-              {showTitlePage ? 'Hide title page' : 'Edit title page'}
-              <span className="link-btn-caret" aria-hidden="true">
-                ▾
-              </span>
-            </button>
+          )}
+        </div>
+        <div className={`title-page-collapse${showTitlePage ? ' open' : ''}`} inert={!showTitlePage}>
+          <div className="title-page-collapse-inner">
+            <TitlePage />
           </div>
         </div>
-        <TabBar />
-        <Toolbar focusedId={focusedId} onExport={handleExport} exporting={exporting} />
-        {exportNotice && (
-          <p className="export-notice" role="status">
-            {exportNotice}
-          </p>
-        )}
-      </div>
-      <div className={`title-page-collapse${showTitlePage ? ' open' : ''}`} inert={!showTitlePage}>
-        <div className="title-page-collapse-inner">
-          <TitlePage />
-        </div>
-      </div>
-      <SceneNavigator
-        isOpen={showNavigator}
-        blocks={doc.blocks}
-        currentSceneId={activeSceneId}
-        onJump={(id) => {
-          handleJumpToScene(id);
-          setShowNavigator(false);
-        }}
-      />
-      {showNavigator && (
-        <button
-          type="button"
-          className="scene-nav-scrim"
-          aria-label="Close scene navigator"
-          onClick={() => setShowNavigator(false)}
+        <SceneNavigator
+          isOpen={showNavigator}
+          blocks={doc.blocks}
+          currentSceneId={activeSceneId}
+          onJump={(id) => {
+            handleJumpToScene(id);
+            setShowNavigator(false);
+          }}
         />
-      )}
-      <main className="stage">
-        <div className="page">
-          <ScriptEditor key={activeTabId} focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
-        </div>
-        <p className="hint-bar">
-          <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
-          <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>⌘/Ctrl Z</kbd> undo
-        </p>
-      </main>
+        {showNavigator && (
+          <button
+            type="button"
+            className="scene-nav-scrim"
+            aria-label="Close scene navigator"
+            onClick={() => setShowNavigator(false)}
+          />
+        )}
+        <main className="stage">
+          <div className="page">
+            <ScriptEditor key={activeTabId} focusedId={focusedId} onFocusedChange={setFocusedId} jumpTo={jumpTo} />
+          </div>
+          <p className="hint-bar">
+            <kbd>Tab</kbd> change element &nbsp; <kbd>Enter</kbd> next line &nbsp;
+            <kbd>⌘/Ctrl 1–7</kbd> jump to element &nbsp; <kbd>⌘/Ctrl Z</kbd> undo
+          </p>
+        </main>
+      </div>
     </div>
   );
 }

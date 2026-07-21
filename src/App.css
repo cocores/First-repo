@@ -1,8 +1,234 @@
-.app {
+.app-layout {
+  display: flex;
+  align-items: stretch;
   min-height: 100vh;
+}
+
+.app {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* ---------- Sidebar (persistent, projects + folders) ---------- */
+
+.sidebar-dock {
+  flex-shrink: 0;
+  width: 260px;
+  overflow: hidden;
+  transition: width 200ms ease;
+}
+
+.sidebar-dock.collapsed {
+  width: 0;
+}
+
+.sidebar {
+  width: 260px;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--desk-raised);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0.85rem 0.6rem;
+}
+
+.sidebar-title {
+  font-family: var(--font-mono-ui);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sidebar-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.5rem;
+}
+
+.sidebar-project-list {
+  list-style: none;
+  margin: 0 0 0.3rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar-project-list.nested {
+  margin-left: 0.9rem;
+  padding-left: 0.4rem;
+  border-left: 1px dashed var(--border);
+}
+
+.sidebar-project-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: 3px;
+}
+
+.sidebar-project-list li.active {
+  background: var(--ribbon);
+}
+
+.sidebar-project-list li.active .sidebar-project-name {
+  color: var(--ribbon-ink);
+}
+
+.sidebar-project-list li.active .icon-btn {
+  color: var(--ribbon-ink);
+  opacity: 0.85;
+}
+
+.sidebar-project-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.4rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-empty {
+  padding: 0.35rem 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.sidebar-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding-right: 0.2rem;
+}
+
+.sidebar-folder-select {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  color: var(--muted);
+  background: var(--desk);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  max-width: 5.5rem;
+  padding: 1px 2px;
+}
+
+.sidebar-folder {
+  margin-bottom: 0.3rem;
+}
+
+.sidebar-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.sidebar-folder-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.4rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.folder-caret {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.folder-name {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-new-project {
+  margin: 0.4rem 0.5rem 0.85rem;
+  text-align: left;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.65rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.sidebar-new-project:hover {
+  color: var(--ribbon);
+  border-color: var(--ribbon);
+}
+
+.sidebar-rename-input {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--desk);
+  border: 1px solid var(--ribbon);
+  border-radius: 3px;
+  padding: 0.3rem 0.4rem;
+  min-width: 0;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  background: var(--desk);
+}
+
+.sidebar-toggle {
+  font-size: 0.95rem;
+  padding: 0.15rem 0.3rem;
+}
+
+.brand-project {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- Deskbar (branding + toolbar, sticky) ---------- */
@@ -44,110 +270,6 @@
   white-space: nowrap;
 }
 
-.project-switcher {
-  position: relative;
-}
-
-.dropdown-scrim {
-  position: fixed;
-  /* Starts below the sticky deskbar (see the ResizeObserver in App.tsx)
-     instead of at the very top, so it never covers the deskbar's own
-     buttons — a stacking context the deskbar establishes means no
-     descendant z-index could out-rank this scrim without ALSO out-ranking
-     the deskbar itself, which would then bury the scene navigator panel. */
-  top: var(--deskbar-height, 0px);
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 35;
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: default;
-}
-
-.project-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 40;
-  width: max-content;
-  min-width: 220px;
-  max-width: 320px;
-  background: var(--desk-raised);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.5);
-  padding: 6px;
-}
-
-.project-menu-list {
-  list-style: none;
-  margin: 0 0 4px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.project-menu-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-radius: 3px;
-}
-
-.project-menu-list li.active {
-  background: var(--ribbon);
-}
-
-.project-menu-list li.active .project-menu-name {
-  color: var(--ribbon-ink);
-}
-
-.project-menu-list li.active .icon-btn {
-  color: var(--ribbon-ink);
-  opacity: 0.8;
-}
-
-.project-menu-name {
-  flex: 1;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0.4rem 0.5rem;
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  color: var(--ink);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-menu-row-actions {
-  display: flex;
-  gap: 2px;
-  padding-right: 0.25rem;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  padding: 0.2rem 0.35rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  cursor: pointer;
-  border-radius: 3px;
-  line-height: 1;
-}
-
-.icon-btn:hover {
-  color: var(--ink);
-  background: var(--desk);
-}
-
-.project-rename-input,
 .tab-rename-input {
   font-family: var(--font-sans);
   font-size: 0.82rem;
@@ -157,25 +279,6 @@
   border-radius: 3px;
   padding: 0.35rem 0.5rem;
   width: 100%;
-}
-
-.project-menu-new {
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--border);
-  padding: 0.5rem;
-  margin-top: 2px;
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.project-menu-new:hover {
-  color: var(--ribbon);
 }
 
 .deskbar-actions {
@@ -196,9 +299,9 @@
 
 .link-btn {
   position: relative;
-  /* Above both full-screen scrims (.scene-nav-scrim, .dropdown-scrim) so
-     re-clicking an open dropdown's own trigger closes it instead of the
-     scrim silently eating the click. */
+  /* Above .scene-nav-scrim as extra insurance (the scrim itself is kept
+     below the deskbar, see its own comment) so a trigger button is never
+     left unclickable by an open overlay. */
   z-index: 36;
   display: inline-flex;
   align-items: center;
@@ -544,8 +647,12 @@
 
 .scene-nav-scrim {
   position: fixed;
-  /* See the comment on .dropdown-scrim — starts below the deskbar so its
-     buttons stay clickable while the navigator is open. */
+  /* Starts below the sticky deskbar (measured via ResizeObserver in
+     App.tsx) instead of at the very top, so it never covers the deskbar's
+     own buttons. The deskbar establishes its own stacking context
+     (position: sticky + z-index), so no z-index this scrim carries could
+     be out-ranked without also out-ranking the deskbar itself — which
+     would then bury this very navigator panel behind it. */
   top: var(--deskbar-height, 0px);
   left: 0;
   right: 0;

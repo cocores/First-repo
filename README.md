@@ -40,26 +40,33 @@ panel.
 
 The document autosaves to the browser's local storage as you type.
 
-## Projects and drafts
+## Projects, folders, and drafts
 
-Work is organized the way WriterDuet organizes it: a **project** is a
-folder, and each project holds one or more **drafts** as tabs across the
-top, each a fully independent screenplay (its own title page, blocks, and
-undo history).
+Work is organized the way WriterDuet organizes it, one level deeper: an
+optional **folder** groups related **projects**, and each project holds
+one or more **drafts** as tabs across the top — each draft a fully
+independent screenplay (its own title page, blocks, and undo history).
 
-- **Project: \<name\> ▾** in the top-left switches between projects,
-  and lets you rename, delete, or create one.
-- The tab strip lists every draft in the current project. Click **+** to
-  add a new draft, click a tab to switch to it, double-click to rename it,
-  and click the **×** to close it (a project always keeps at least one).
-- Switching projects or drafts never touches the others' content —
-  undo history, scroll position, and the currently focused line are all
-  scoped to whichever draft you're looking at.
+- The **sidebar** on the left lists every folder and project. Click **☰**
+  next to the wordmark to collapse it for more editing room, or bring it
+  back the same way.
+- **📁+** creates a folder; **+** inside a folder creates a project
+  directly in it; **+ New Project** at the bottom creates an unfiled one.
+  The small dropdown next to each project moves it into (or out of) a
+  folder. Rename or delete either one from its ✎/× icons — deleting a
+  folder only unfiles its projects, it never deletes them.
+- The tab strip below the deskbar lists every draft in the *active*
+  project. Click **+** to add a new draft, click a tab to switch to it,
+  double-click to rename it, and click the **×** to close it (a project
+  always keeps at least one).
+- Switching folders, projects, or drafts never touches anything else's
+  content — undo history, scroll position, and the currently focused line
+  are all scoped to whichever draft you're looking at.
 - Everything (typing, undo/redo, export, stats, the scene navigator)
-  always applies to the **active draft**, exactly as it did before drafts
-  existed.
+  always applies to the **active draft**, exactly as it did before any of
+  this organization existed.
 
-If you already had a script saved before this existed, it's migrated
+If you already had a script saved before projects existed, it's migrated
 automatically into a project called "My Project" the first time you load
 the app — nothing is lost.
 
