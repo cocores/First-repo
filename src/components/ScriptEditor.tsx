@@ -2,9 +2,11 @@ import { useCallback, useState } from 'react';
 import { useScriptStore } from '../store';
 import { cycleType, nextTypeOnEnter, transformText } from '../format/elements';
 import { blankLinesBefore } from '../format/spec';
-import { getSuggestion } from '../format/suggestions';
+import { getSuggestions } from '../format/suggestions';
 import { Block, type FocusRequest } from './Block';
 import type { ElementType } from '../types';
+
+const NO_SUGGESTIONS: string[] = [];
 
 interface ScriptEditorProps {
   focusedId: string | null;
@@ -94,7 +96,9 @@ export function ScriptEditor({ focusedId, onFocusedChange }: ScriptEditorProps) 
           block={block}
           isFocused={focusedId === block.id}
           blankLinesBefore={i === 0 ? 0 : blankLinesBefore(doc.blocks[i - 1].type, block.type)}
-          suggestion={focusedId === block.id ? getSuggestion(doc.blocks, block.id, block.type, block.text) : null}
+          suggestions={
+            focusedId === block.id ? getSuggestions(doc.blocks, block.id, block.type, block.text) : NO_SUGGESTIONS
+          }
           focusRequest={focusRequest}
           onFocusHandled={() => setFocusRequest(null)}
           onFocus={onFocusedChange}
