@@ -86,6 +86,23 @@ If you already had a script saved before projects existed, it's migrated
 automatically into a project called "My Project" the first time you load
 the app — nothing is lost.
 
+## Sharing a project
+
+There's no account system or live sync — everything lives in your
+browser's local storage, on your device only. To collaborate anyway, use
+the sidebar's icons on each project row:
+
+- **⬇** exports that project (every draft, its title page, and its
+  comments) as a single `.json` file you can send to a collaborator —
+  email, Slack, a shared drive, however you'd normally share a file.
+- **Import project…** at the bottom of the sidebar loads a `.json` file
+  someone sent you back in, as a new project of its own (never
+  overwriting anything you already have).
+
+It's asynchronous, not real-time multiplayer — you trade files back and
+forth rather than editing simultaneously — but it needs no server and
+works the moment you open the app.
+
 ## Format checking
 
 Beyond the mechanical formatting (margins, indents, caps) the editor
@@ -106,6 +123,15 @@ issue with a plain-language suggestion; where a fix is unambiguous (adding
 a missing colon, an INT./EXT., a time of day, or converting stray caps to
 sentence case) an **Apply fix** button does it in one click. Click any row
 to jump straight to that line.
+
+## Comments
+
+Leave notes for yourself or a collaborator without touching the script
+text itself. Hover any line to reveal a small 💬 button (it stays visible
+once a line has a comment, with a count badge); click it to read, add, or
+resolve comments right there, or open **Comments (N)** in the deskbar for
+a full list across the whole draft, grouped into open and resolved, with
+a jump-to-line link on each one.
 
 ## Navigating and revising
 

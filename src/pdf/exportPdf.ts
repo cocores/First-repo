@@ -13,6 +13,7 @@ import {
   blankLinesBefore,
   maxCharsForElement,
 } from '../format/spec';
+import { isEmbeddedInIframe } from '../utils/iframe';
 
 const FONT_SIZE = 12;
 const LINE_HEIGHT_IN = 1 / LINES_PER_INCH;
@@ -197,23 +198,6 @@ export function paginate(blocks: ScriptBlock[]): Page[] {
   }
 
   return pages;
-}
-
-// Sandboxed iframes (e.g. an embedded preview) can render the app fine but
-// silently block the anchor-click download jsPDF's save() relies on, unless
-// the embedder opts in with the `allow-downloads` sandbox flag. Opening a
-// blob: URL in a new tab isn't a reliable fallback either: without
-// `allow-popups-to-escape-sandbox`, the popup inherits the opener's sandbox
-// restrictions, so the tab opens but the PDF fails to load — the popup call
-// still returns a truthy handle, so success can't be detected from here.
-// The only sandbox-proof path is to tell the writer to open the app in its
-// own tab, where it isn't sandboxed at all.
-function isEmbeddedInIframe(): boolean {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true;
-  }
 }
 
 export type ExportMode = 'downloaded' | 'may-be-blocked';

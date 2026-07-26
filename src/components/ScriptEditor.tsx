@@ -6,10 +6,11 @@ import { computeScreenPages } from '../format/pageLayout';
 import { getSuggestions } from '../format/suggestions';
 import type { LintIssue } from '../format/lint';
 import { Block, type FocusRequest } from './Block';
-import type { ElementType } from '../types';
+import type { Comment, ElementType } from '../types';
 
 const NO_SUGGESTIONS: string[] = [];
 const NO_ISSUES: LintIssue[] = [];
+const NO_COMMENTS: Comment[] = [];
 
 export interface JumpRequest {
   id: string;
@@ -24,8 +25,19 @@ interface ScriptEditorProps {
 }
 
 export function ScriptEditor({ focusedId, onFocusedChange, jumpTo, issuesByBlock }: ScriptEditorProps) {
-  const { doc, setText, setType, splitBlock, mergeWithPrevious } = useScriptStore();
+  const { doc, setText, setType, splitBlock, mergeWithPrevious, addComment, resolveComment, deleteComment } =
+    useScriptStore();
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+
+  const commentsByBlock = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    for (const comment of doc.comments) {
+      const list = map.get(comment.blockId);
+      if (list) list.push(comment);
+      else map.set(comment.blockId, [comment]);
+    }
+    return map;
+  }, [doc.comments]);
 
   useEffect(() => {
     if (!jumpTo) return;
@@ -129,6 +141,7 @@ export function ScriptEditor({ focusedId, onFocusedChange, jumpTo, issuesByBlock
                       : NO_SUGGESTIONS
                   }
                   issues={issuesByBlock.get(block.id) ?? NO_ISSUES}
+                  comments={commentsByBlock.get(block.id) ?? NO_COMMENTS}
                   focusRequest={focusRequest}
                   onFocusHandled={() => setFocusRequest(null)}
                   onFocus={onFocusedChange}
@@ -139,6 +152,9 @@ export function ScriptEditor({ focusedId, onFocusedChange, jumpTo, issuesByBlock
                   onBackspaceAtStart={handleBackspaceAtStart}
                   onArrowUpAtStart={handleArrowUp}
                   onArrowDownAtEnd={handleArrowDown}
+                  onAddComment={addComment}
+                  onResolveComment={resolveComment}
+                  onDeleteComment={deleteComment}
                 />
               );
             })}

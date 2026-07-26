@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import type { ElementType, ScriptBlock, ScriptDocument, TitlePageInfo } from './types';
+import type { Comment, ElementType, ExportedProjectFile, ScriptBlock, ScriptDocument, TitlePageInfo } from './types';
 
 const STORAGE_KEY = 'scriptwriter.projects.v1';
 const LEGACY_STORAGE_KEY = 'scriptwriter.document.v1';
@@ -20,7 +20,13 @@ function defaultScriptDocument(): ScriptDocument {
   return {
     titlePage: { title: 'Untitled Screenplay', author: '', contact: '' },
     blocks: [newBlock('scene_heading', '')],
+    comments: [],
   };
+}
+
+// Saves from before comments existed won't have the field at all.
+function normalizeDoc(doc: ScriptDocument): ScriptDocument {
+  return doc.comments ? doc : { ...doc, comments: [] };
 }
 
 // --- Per-document editing (unchanged from the single-document version) ---
@@ -30,7 +36,10 @@ type DocAction =
   | { type: 'SET_TYPE'; id: string; elementType: ElementType }
   | { type: 'SPLIT_BLOCK'; id: string; caretPos: number; newType: ElementType; newId: string }
   | { type: 'MERGE_WITH_PREVIOUS'; id: string }
-  | { type: 'SET_TITLE_PAGE'; field: keyof TitlePageInfo; value: string };
+  | { type: 'SET_TITLE_PAGE'; field: keyof TitlePageInfo; value: string }
+  | { type: 'ADD_COMMENT'; commentId: string; blockId: string; text: string; time: number }
+  | { type: 'RESOLVE_COMMENT'; commentId: string; resolved: boolean }
+  | { type: 'DELETE_COMMENT'; commentId: string };
 
 function docReducer(doc: ScriptDocument, action: DocAction): ScriptDocument {
   switch (action.type) {
@@ -71,6 +80,25 @@ function docReducer(doc: ScriptDocument, action: DocAction): ScriptDocument {
     case 'SET_TITLE_PAGE': {
       return { ...doc, titlePage: { ...doc.titlePage, [action.field]: action.value } };
     }
+    case 'ADD_COMMENT': {
+      const comment: Comment = {
+        id: action.commentId,
+        blockId: action.blockId,
+        text: action.text,
+        createdAt: action.time,
+        resolved: false,
+      };
+      return { ...doc, comments: [...doc.comments, comment] };
+    }
+    case 'RESOLVE_COMMENT': {
+      return {
+        ...doc,
+        comments: doc.comments.map((c) => (c.id === action.commentId ? { ...c, resolved: action.resolved } : c)),
+      };
+    }
+    case 'DELETE_COMMENT': {
+      return { ...doc, comments: doc.comments.filter((c) => c.id !== action.commentId) };
+    }
     default:
       return doc;
   }
@@ -93,7 +121,7 @@ function newTab(name: string, document?: ScriptDocument): Tab {
     id: newId(),
     name,
     past: [],
-    present: document ?? defaultScriptDocument(),
+    present: document ? normalizeDoc(document) : defaultScriptDocument(),
     future: [],
     lastCoalesceKey: null,
     lastCoalesceTime: 0,
@@ -186,7 +214,8 @@ type ManagementAction =
   | { type: 'CREATE_TAB'; name: string }
   | { type: 'RENAME_TAB'; tabId: string; name: string }
   | { type: 'CLOSE_TAB'; tabId: string }
-  | { type: 'SET_ACTIVE_TAB'; tabId: string };
+  | { type: 'SET_ACTIVE_TAB'; tabId: string }
+  | { type: 'IMPORT_PROJECT'; name: string; tabs: { name: string; document: ScriptDocument }[] };
 
 type AppAction = ManagementAction | DocAction | { type: 'UNDO' } | { type: 'REDO' };
 
@@ -201,6 +230,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'CREATE_PROJECT': {
       const project = newProject(action.name, action.folderId ?? null);
+      return { ...state, projects: [...state.projects, project], activeProjectId: project.id };
+    }
+    case 'IMPORT_PROJECT': {
+      const tabs = action.tabs.map((t) => newTab(t.name, t.document));
+      const project = newProject(action.name, null, tabs);
       return { ...state, projects: [...state.projects, project], activeProjectId: project.id };
     }
     case 'RENAME_PROJECT': {
@@ -286,10 +320,19 @@ function loadState(): AppState {
     if (raw) {
       const parsed = JSON.parse(raw) as AppState;
       if (parsed.projects?.length > 0) {
-        // Older saves predate folders and projects' folderId field.
+        // Older saves predate folders/projects' folderId field and comments.
         return {
           folders: parsed.folders ?? [],
-          projects: parsed.projects.map((p) => ({ ...p, folderId: p.folderId ?? null })),
+          projects: parsed.projects.map((p) => ({
+            ...p,
+            folderId: p.folderId ?? null,
+            tabs: p.tabs.map((t) => ({
+              ...t,
+              present: normalizeDoc(t.present),
+              past: t.past.map(normalizeDoc),
+              future: t.future.map(normalizeDoc),
+            })),
+          })),
           activeProjectId: parsed.activeProjectId,
         };
       }
@@ -361,6 +404,16 @@ interface StoreContextValue {
   renameTab: (id: string, name: string) => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
+
+  // Comments on the active tab's document, pinned to a block.
+  comments: Comment[];
+  addComment: (blockId: string, text: string) => void;
+  resolveComment: (id: string, resolved: boolean) => void;
+  deleteComment: (id: string) => void;
+
+  // Sharing a project as a file, for async collaboration without a backend.
+  exportProject: (projectId: string) => ExportedProjectFile | null;
+  importProject: (file: ExportedProjectFile) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -412,6 +465,36 @@ export function ScriptStoreProvider({ children }: { children: React.ReactNode })
       renameTab: (id, name) => dispatch({ type: 'RENAME_TAB', tabId: id, name }),
       closeTab: (id) => dispatch({ type: 'CLOSE_TAB', tabId: id }),
       setActiveTab: (id) => dispatch({ type: 'SET_ACTIVE_TAB', tabId: id }),
+
+      comments: activeTab.present.comments,
+      addComment: (blockId, text) =>
+        dispatch({ type: 'ADD_COMMENT', commentId: newId(), blockId, text, time: Date.now() }),
+      resolveComment: (id, resolved) => dispatch({ type: 'RESOLVE_COMMENT', commentId: id, resolved }),
+      deleteComment: (id) => dispatch({ type: 'DELETE_COMMENT', commentId: id }),
+
+      exportProject: (projectId) => {
+        const project = state.projects.find((p) => p.id === projectId);
+        if (!project) return null;
+        return {
+          formatVersion: 1,
+          name: project.name,
+          tabs: project.tabs.map((t) => ({
+            name: t.name,
+            titlePage: t.present.titlePage,
+            blocks: t.present.blocks,
+            comments: t.present.comments,
+          })),
+        };
+      },
+      importProject: (file) =>
+        dispatch({
+          type: 'IMPORT_PROJECT',
+          name: file.name,
+          tabs: file.tabs.map((t) => ({
+            name: t.name,
+            document: { titlePage: t.titlePage, blocks: t.blocks, comments: t.comments ?? [] },
+          })),
+        }),
     }),
     [state, activeProject, activeTab],
   );

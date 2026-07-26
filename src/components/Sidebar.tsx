@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useScriptStore } from '../store';
+import { downloadProjectFile, parseProjectFile } from '../io/projectFile';
 
 interface RenamingState {
   kind: 'project' | 'folder';
@@ -19,11 +20,37 @@ export function Sidebar() {
     deleteProject,
     moveProject,
     setActiveProject,
+    exportProject,
+    importProject,
   } = useScriptStore();
 
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const [renaming, setRenaming] = useState<RenamingState | null>(null);
   const [draftName, setDraftName] = useState('');
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  function handleExportProject(projectId: string, name: string) {
+    const file = exportProject(projectId);
+    if (!file) return;
+    const filename = `${name.replace(/[^a-z0-9]+/gi, '_') || 'project'}.scriptwriter.json`;
+    downloadProjectFile(file, filename);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const text = await file.text();
+    const parsed = parseProjectFile(text);
+    if (!parsed) {
+      setImportNotice("That file doesn't look like a Scriptwriter project export.");
+      return;
+    }
+    importProject(parsed);
+    setImportNotice(null);
+  }
 
   function toggleFolder(id: string) {
     setCollapsedFolders((prev) => {
@@ -95,6 +122,15 @@ export function Sidebar() {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                className="icon-btn"
+                title="Export project as a file"
+                aria-label="Export project as a file"
+                onClick={() => handleExportProject(project.id, project.name)}
+              >
+                ⬇
+              </button>
               <button
                 type="button"
                 className="icon-btn"
@@ -208,9 +244,22 @@ export function Sidebar() {
 
         <ul className="sidebar-project-list">{unfiled.map(renderProjectRow)}</ul>
       </div>
-      <button type="button" className="sidebar-new-project" onClick={() => createProject(`Project ${projects.length + 1}`)}>
-        + New Project
-      </button>
+      {importNotice && <p className="sidebar-import-notice">{importNotice}</p>}
+      <div className="sidebar-footer-actions">
+        <button type="button" className="sidebar-new-project" onClick={() => createProject(`Project ${projects.length + 1}`)}>
+          + New Project
+        </button>
+        <button type="button" className="sidebar-import-project" onClick={() => importInputRef.current?.click()}>
+          Import project…
+        </button>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="sidebar-import-input"
+          onChange={handleImportFile}
+        />
+      </div>
     </aside>
   );
 }

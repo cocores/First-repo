@@ -19,9 +19,34 @@ export interface TitlePageInfo {
   contact: string;
 }
 
+export interface Comment {
+  id: string;
+  blockId: string;
+  text: string;
+  createdAt: number;
+  resolved: boolean;
+}
+
 export interface ScriptDocument {
   titlePage: TitlePageInfo;
   blocks: ScriptBlock[];
+  comments: Comment[];
+}
+
+export interface ExportedTab {
+  name: string;
+  titlePage: TitlePageInfo;
+  blocks: ScriptBlock[];
+  comments: Comment[];
+}
+
+// The interchange format for sharing a whole project as a file. Deliberately
+// excludes undo history (past/future) and ids — those are per-machine, not
+// meaningful to hand to a collaborator.
+export interface ExportedProjectFile {
+  formatVersion: 1;
+  name: string;
+  tabs: ExportedTab[];
 }
 
 export const ELEMENT_LABELS: Record<ElementType, string> = {

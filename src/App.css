@@ -170,8 +170,15 @@
   white-space: nowrap;
 }
 
-.sidebar-new-project {
+.sidebar-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   margin: 0.4rem 0.5rem 0.85rem;
+}
+
+.sidebar-new-project,
+.sidebar-import-project {
   text-align: left;
   background: none;
   border: 1px dashed var(--border);
@@ -184,9 +191,21 @@
   cursor: pointer;
 }
 
-.sidebar-new-project:hover {
+.sidebar-new-project:hover,
+.sidebar-import-project:hover {
   color: var(--ribbon);
   border-color: var(--ribbon);
+}
+
+.sidebar-import-input {
+  display: none;
+}
+
+.sidebar-import-notice {
+  margin: 0 0.5rem 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--warn);
 }
 
 .sidebar-rename-input {
@@ -551,7 +570,9 @@
 
 .scene-nav {
   position: fixed;
-  top: 0;
+  /* Starts below the sticky deskbar (see .scene-nav-scrim below) so it
+     never covers the deskbar's own sidebar-toggle button at the top left. */
+  top: var(--deskbar-height, 0px);
   left: 0;
   bottom: 0;
   z-index: 30;
@@ -668,7 +689,12 @@
 
 .format-panel {
   position: fixed;
-  top: 0;
+  /* Starts below the sticky deskbar (see .scene-nav-scrim above) so it never
+     covers the deskbar's own toggle buttons — which matters now that two
+     buttons (Format Issues, Comments) both open a panel docked here, so
+     switching between them means clicking a deskbar button while a panel
+     is already open. */
+  top: var(--deskbar-height, 0px);
   right: 0;
   bottom: 0;
   z-index: 30;
@@ -1047,6 +1073,182 @@
 .suggestion-dropdown li.highlighted {
   background: var(--ribbon);
   color: var(--ribbon-ink);
+}
+
+/* ---------- Inline comments ---------- */
+
+.block-comment-zone {
+  position: relative;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-left: 0.35rem;
+}
+
+.block-comment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0.15rem;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.block-row:hover .block-comment-btn,
+.block-comment-btn:focus,
+.block-comment-btn.has-comments {
+  opacity: 0.85;
+}
+
+.block-comment-btn:hover {
+  opacity: 1;
+  background: var(--desk);
+}
+
+.block-comment-count {
+  font-family: var(--font-mono-ui);
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: var(--ribbon);
+  color: var(--ribbon-ink);
+  border-radius: 999px;
+  padding: 0.02rem 0.35rem;
+}
+
+.block-comment-popover {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 22;
+  width: 240px;
+  margin-left: 4px;
+  background: var(--desk-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.4);
+  padding: 0.5rem;
+  font-family: var(--font-sans);
+}
+
+.block-comment-list {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.block-comment-list li {
+  background: var(--desk);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid var(--ribbon);
+}
+
+.block-comment-list li.resolved {
+  border-left-color: var(--border);
+  opacity: 0.6;
+}
+
+.block-comment-text {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.block-comment-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.block-comment-actions button,
+.block-comment-popover-footer button {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  background: var(--desk-raised);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.block-comment-actions button:hover,
+.block-comment-popover-footer button:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.block-comment-input {
+  width: 100%;
+  min-height: 3.5em;
+  resize: vertical;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem;
+  background: var(--desk);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.block-comment-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.block-comment-popover-footer button:not(.block-comment-close):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comment-row-actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.6rem 0.5rem;
+}
+
+.comment-row-actions button {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  background: var(--desk-raised);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.comment-row-actions button:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.comments-resolved-group {
+  margin-top: 0.75rem;
+  padding: 0 0.75rem;
+}
+
+.comments-resolved-group summary {
+  font-family: var(--font-mono-ui);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: 0.4rem;
 }
 
 .hint-bar {

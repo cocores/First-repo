@@ -5,6 +5,7 @@ import { Toolbar } from './components/Toolbar';
 import { TitlePage } from './components/TitlePage';
 import { SceneNavigator } from './components/SceneNavigator';
 import { FormatIssuesPanel } from './components/FormatIssuesPanel';
+import { CommentsPanel } from './components/CommentsPanel';
 import { Sidebar } from './components/Sidebar';
 import { TabBar } from './components/TabBar';
 import { exportScriptToPdf } from './pdf/exportPdf';
@@ -25,12 +26,14 @@ function currentSceneId(blocks: ScriptBlock[], focusedId: string | null): string
 }
 
 function AppShell() {
-  const { doc, undo, redo, setText, activeProjectId, activeProjectName, activeTabId } = useScriptStore();
+  const { doc, undo, redo, setText, resolveComment, deleteComment, activeProjectId, activeProjectName, activeTabId } =
+    useScriptStore();
   const [focusedId, setFocusedId] = useState<string | null>(doc.blocks[0]?.id ?? null);
   const [exporting, setExporting] = useState(false);
   const [showTitlePage, setShowTitlePage] = useState(false);
   const [showNavigator, setShowNavigator] = useState(false);
   const [showFormatPanel, setShowFormatPanel] = useState(false);
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [jumpTo, setJumpTo] = useState<JumpRequest | null>(null);
@@ -150,7 +153,10 @@ function AppShell() {
                 type="button"
                 className="link-btn"
                 aria-expanded={showFormatPanel}
-                onClick={() => setShowFormatPanel((v) => !v)}
+                onClick={() => {
+                  setShowFormatPanel((v) => !v);
+                  setShowCommentsPanel(false);
+                }}
               >
                 Format Issues ({issues.length})
                 <span className="link-btn-caret" aria-hidden="true">
@@ -164,6 +170,20 @@ function AppShell() {
                 onClick={() => setShowNavigator((v) => !v)}
               >
                 Scenes ({stats.sceneCount})
+                <span className="link-btn-caret" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+              <button
+                type="button"
+                className="link-btn"
+                aria-expanded={showCommentsPanel}
+                onClick={() => {
+                  setShowCommentsPanel((v) => !v);
+                  setShowFormatPanel(false);
+                }}
+              >
+                Comments ({doc.comments.filter((c) => !c.resolved).length})
                 <span className="link-btn-caret" aria-hidden="true">
                   ▾
                 </span>
@@ -227,6 +247,25 @@ function AppShell() {
             className="format-panel-scrim"
             aria-label="Close format suggestions"
             onClick={() => setShowFormatPanel(false)}
+          />
+        )}
+        <CommentsPanel
+          isOpen={showCommentsPanel}
+          comments={doc.comments}
+          blocksById={blocksById}
+          onJump={(id) => {
+            handleJumpToBlock(id);
+            setShowCommentsPanel(false);
+          }}
+          onResolve={resolveComment}
+          onDelete={deleteComment}
+        />
+        {showCommentsPanel && (
+          <button
+            type="button"
+            className="format-panel-scrim"
+            aria-label="Close comments"
+            onClick={() => setShowCommentsPanel(false)}
           />
         )}
         <main className="stage">

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ScriptBlock } from '../types';
+import type { Comment, ScriptBlock } from '../types';
 import { ELEMENT_LABELS } from '../types';
 import { ELEMENT_LAYOUT, MARGIN_LEFT_IN } from '../format/spec';
 import type { LintIssue } from '../format/lint';
@@ -15,6 +15,7 @@ interface BlockProps {
   blankLinesBefore: number;
   suggestions: string[];
   issues: LintIssue[];
+  comments: Comment[];
   focusRequest: FocusRequest | null;
   onFocusHandled: () => void;
   onFocus: (id: string) => void;
@@ -25,6 +26,9 @@ interface BlockProps {
   onBackspaceAtStart: (id: string) => void;
   onArrowUpAtStart: (id: string) => void;
   onArrowDownAtEnd: (id: string) => void;
+  onAddComment: (blockId: string, text: string) => void;
+  onResolveComment: (id: string, resolved: boolean) => void;
+  onDeleteComment: (id: string) => void;
 }
 
 export function Block({
@@ -33,6 +37,7 @@ export function Block({
   blankLinesBefore,
   suggestions,
   issues,
+  comments,
   focusRequest,
   onFocusHandled,
   onFocus,
@@ -43,12 +48,17 @@ export function Block({
   onBackspaceAtStart,
   onArrowUpAtStart,
   onArrowDownAtEnd,
+  onAddComment,
+  onResolveComment,
+  onDeleteComment,
 }: BlockProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const layout = ELEMENT_LAYOUT[block.type];
   const [caretAtEnd, setCaretAtEnd] = useState(true);
   const [dismissed, setDismissed] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
+  const [showCommentPopover, setShowCommentPopover] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
 
   useLayoutEffect(() => {
     const ta = ref.current;
@@ -86,6 +96,13 @@ export function Block({
 
   function accept(fullText: string) {
     onAcceptSuggestion(block.id, fullText);
+  }
+
+  function commitAddComment() {
+    const trimmed = newCommentText.trim();
+    if (!trimmed) return;
+    onAddComment(block.id, trimmed);
+    setNewCommentText('');
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -203,6 +220,64 @@ export function Block({
               </li>
             ))}
           </ul>
+        )}
+      </div>
+      <div className="block-comment-zone">
+        <button
+          type="button"
+          className={`block-comment-btn${comments.length > 0 ? ' has-comments' : ''}`}
+          title={comments.length > 0 ? `${comments.length} comment${comments.length > 1 ? 's' : ''}` : 'Add comment'}
+          aria-label={comments.length > 0 ? `${comments.length} comments on this line` : 'Add comment'}
+          onClick={() => setShowCommentPopover((v) => !v)}
+        >
+          💬
+          {comments.length > 0 && <span className="block-comment-count">{comments.length}</span>}
+        </button>
+        {showCommentPopover && (
+          <div className="block-comment-popover">
+            {comments.length > 0 && (
+              <ul className="block-comment-list">
+                {comments.map((c) => (
+                  <li key={c.id} className={c.resolved ? 'resolved' : ''}>
+                    <p className="block-comment-text">{c.text}</p>
+                    <div className="block-comment-actions">
+                      <button type="button" onClick={() => onResolveComment(c.id, !c.resolved)}>
+                        {c.resolved ? 'Reopen' : 'Resolve'}
+                      </button>
+                      <button type="button" onClick={() => onDeleteComment(c.id)}>
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <textarea
+              className="block-comment-input"
+              placeholder="Add a comment…"
+              value={newCommentText}
+              autoFocus
+              onChange={(e) => setNewCommentText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setShowCommentPopover(false);
+                }
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  commitAddComment();
+                }
+              }}
+            />
+            <div className="block-comment-popover-footer">
+              <button type="button" className="block-comment-close" onClick={() => setShowCommentPopover(false)}>
+                Close
+              </button>
+              <button type="button" disabled={!newCommentText.trim()} onClick={commitAddComment}>
+                Add comment
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
